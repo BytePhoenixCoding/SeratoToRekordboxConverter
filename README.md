@@ -42,6 +42,7 @@ My library structure looks like this:
 Music/
 ├── serato_to_rekordbox_converter.py
 ├── _Serato_
+   ├── Subcrates
 ├── House/ (contains .mp3 and .m4a files)
 └── Rap/ (contains .mp3 and .m4a files)
 ```
