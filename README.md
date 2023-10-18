@@ -11,10 +11,13 @@ This script provides an automated solution for importing Serato crates into Reko
 3. Metadata, including song name, artist, and hot cues, is collected from each track file.
 4. A Rekordbox-compatible XML file is generated, ready for import into Rekordbox.
 
+Converting my own library of around 1,500 tracks took around 10 seconds for the script.
+
 ## Limitations
 
-- Currently, only `.mp3` and `.m4a` files are supported. Support for additional formats like FLAC or AAC may be added in the future.
+- Currently, only `.mp3` and `.m4a` files are supported. Support for additional formats like FLAC or AIFF may be added in the future.
 - Some tracks may have hot cues that cannot be parsed. This issue is rare and primarily affects tracks that were initially converted from Rekordbox using third-party software.
+- The analysis data from Serato is not converted. The files will need to be re-analysed in Rekordbox, however the hot cues are set as number of milliseconds in the track so they shouldn't be affected by Rekordbox's analysis.
 - This script is experimental and may require code adjustments to function correctly in your setup.
 
 ## Setup Instructions
