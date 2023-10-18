@@ -2,7 +2,7 @@
 
 ## Overview
 
-This script provides an automated solution for importing Serato crates into Rekordbox playlists. It is designed for DJs who primarily use Serato but also perform with standalone Rekordbox equipment. The script eliminates the time-consuming task of manually updating your Rekordbox library with new tracks.
+This script provides an automated solution for converting Serato crates into Rekordbox playlists. It is designed for DJs who primarily use Serato but also perform with standalone Rekordbox equipment. The script eliminates the time-consuming task of manually updating your Rekordbox library with new tracks.
 
 ## How It Works
 
