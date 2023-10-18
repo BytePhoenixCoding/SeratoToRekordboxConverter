@@ -23,38 +23,34 @@ This script provides an automated solution for importing Serato crates into Reko
 
 Install the Mutagen library:
 
-\`\`\`bash
-pip install mutagen
-\`\`\`
+```pip install mutagen```
 
 ### Configuration
 
 Modify the following variables in the script as needed:
 
-\`\`\`python
+```
 serato_folder_path = "_Serato_/subcrates"
 base_dir = "Users/administrator/Music/"
-\`\`\`
+```
 
 ### Folder Structure
 
 My library structure looks like this:
 
-\`\`\`
+```
 Music/
 ├── serato_to_rekordbox_converter.py
 ├── _Serato_
 ├── House/ (contains .mp3 and .m4a files)
 └── Rap/ (contains .mp3 and .m4a files)
-\`\`\`
+```
 
 ### Execution
 
 Run the script with Python 3:
 
-\`\`\`bash
-python3 serato_to_rekordbox_converter.py
-\`\`\`
+```python3 serato_to_rekordbox_converter.py```
 
 If successful, a `Serato_Converter.xml` file will be generated.
 
@@ -68,9 +64,7 @@ If successful, a `Serato_Converter.xml` file will be generated.
 
 This script offers functionality that many paid programs provide. If you find it helpful, consider supporting its development by donating BNB, Ethereum, or other cryptocurrencies to the following address:
 
-\`\`\`
-0x40f1f74038ac7A2B1b8e6Aa4dA80d7C0fC60ab74
-\`\`\`
+```0x40f1f74038ac7A2B1b8e6Aa4dA80d7C0fC60ab74```
 
 Cheers!
 
