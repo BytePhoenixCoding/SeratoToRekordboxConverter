@@ -56,12 +56,12 @@ Run the script with Python 3:
 
 ```python3 serato_to_rekordbox_converter.py```
 
-If successful, a `Serato_Converter.xml` file will be generated.
+If successful, a `Serato_Converted.xml` file will be generated.
 
 ### Import into Rekordbox
 
 1. Open Rekordbox.
-2. Navigate to `Preferences -> Advanced -> rekordbox xml`.
+2. Navigate to `Preferences -> Advanced -> rekordbox xml` and import the generated XML file.
 3. Your playlists will appear in Rekordbox under the `rekordbox xml` format. Import them into your main library, analyze, and export to USB as needed.
 
 ## Donations
