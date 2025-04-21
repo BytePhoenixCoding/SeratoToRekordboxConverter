@@ -2,6 +2,12 @@
 
 This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer compatible versions).
 
+# Why did I make this?
+
+As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial to have a working USB so I can go along to a gig with just a USB and headphones, or just to have it as a backup.
+
+I couldn't find any other free software that could convert it so I decided to make my own.
+
 ## Features
 
 *   **Playlist Conversion:** Converts your Serato crates into Rekordbox playlists/folders.
