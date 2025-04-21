@@ -69,10 +69,14 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 
 *   This script primarily transfers playlists, basic metadata, hot cues, and the **first beat position** for the beatgrid. Other Serato-specific data like loops, specific track flags (e.g., played status) etc. may not work.
 *   Some tracks may not have the correct beatgrid data or key.
+*   Smart crates are not supported.
+*   Some beatgrids in Rekordbox appear to be slightly off beat even though perfectly on beat in Serato.
+
+## Notes
+
 *   The script has been tested on my own Serato library which contains almost 4000 tracks and performs as intended. It was able to process the entire library in around 20 seconds and rekordbox exporting to my USB (HFS+) only took around 15 minutes.
 *   Rekordbox 6.8.5 is recommended at the moment as Rekordbox 7 is reported to export to USB much slower. 
 *   `HFS+` seems to be the fastest USB file format but `FAT32` is more compatible with older Pioneer hardware.
-*   Smart crates are not supported.
 
 ## Future improvements
 
@@ -82,5 +86,5 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 
 ## Contributing
 
-If you find issues or have ideas for improvements, please feel free to open an issue or submit a pull request. 
+If you find issues or have ideas for improvements, please feel free to open an issue or submit a pull request.
 
