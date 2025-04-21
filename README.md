@@ -1,4 +1,4 @@
-# Serato to Rekordbox Converter with Advanced Beatgrids & Hot Cues
+# serato2rekordbox
 
 This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer compatible versions).
 
