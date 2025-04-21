@@ -4,7 +4,7 @@ This Python script converts your Serato DJ Pro library (playlists, tracks, metad
 
 # Why did I make this?
 
-As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial to have a working USB so I can go along to a gig with just a USB and headphones, or just to have it as a backup. I only use Serato and don't like to use Rekordbox but Serato doesn't have an easy way of exporting tracks to a USB.
+As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial to have a working USB so I can go along to a gig with just a USB and headphones, or just to have it as a backup. I only use Serato and don't like to use Rekordbox in general but Serato doesn't have an easy way of exporting tracks to a USB.
 
 I couldn't find any other free software that could convert it so I decided to make my own.
 
