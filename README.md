@@ -71,7 +71,7 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 
 ## Future improvements
 
-- Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff`.
+- Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff` - only `.mp3` and `.m4a` are supported at the moment as these are the only file formats I ever use.
 - Perhaps improve reliability for processing certain track beatgrids etc.
 - Make a GUI?
 
