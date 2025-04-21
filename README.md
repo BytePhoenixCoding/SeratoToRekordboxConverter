@@ -71,6 +71,12 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 *   Some tracks may not have the correct beatgrid data or key.
 *   The script has been tested on my own Serato library which contains almost 4000 tracks and performs as intended. It was able to process the entire library in around 20 seconds and rekordbox exporting to my USB (HFS+) only took around 15 minutes.
 
+## Future improvements
+
+- Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff`.
+- Perhaps improve reliability for processing certain track beatgrids etc.
+- Make a GUI?
+
 ## Contributing
 
 If you find issues or have ideas for improvements, please feel free to open an issue or submit a pull request. 
