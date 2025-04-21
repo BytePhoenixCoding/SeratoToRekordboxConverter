@@ -17,6 +17,7 @@ I couldn't find any other free software that could convert it so I decided to ma
 *   **Automatic Serato Folder Detection:** Automatically attempts to find your Serato `_Serato_` folder on standard Windows and macOS locations.
 *   **Detailed Error Reporting:** Collects and reports errors (missing files, unsupported formats, processing errors, crate reading issues) in a clear, grouped summary at the end. Failed tracks are excluded from the output XML.
 *   **File Support:** Supports conversion for `.mp3` and `.m4a` audio files found in your Serato library.
+*   Normal crates and subcrates are supported.
 
 ## Prerequisites
 
@@ -60,6 +61,7 @@ Once `Serato_Converted.xml` is generated:
 
 1.  Open Rekordbox DJ.
 2.  Go to Settings (Gear icon at top) > Advanced > rekordbox xml and select the generated XML file.
+3.  In the sidebar, drag the imported playlists into your USB and wait for Rekordbox to finish processing.
 
 Rekordbox will import the playlists and tracks. The tracks should appear with their correct metadata (Title, Artist, BPM, Key), Hot Cues, and the accurate Beatgrids based on the first beat position provided in the XML. Rekordbox may still perform some background analysis (like waveform drawing), but it should respect the imported beatgrid and cue data.
 
@@ -70,6 +72,7 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 *   The script has been tested on my own Serato library which contains almost 4000 tracks and performs as intended. It was able to process the entire library in around 20 seconds and rekordbox exporting to my USB (HFS+) only took around 15 minutes.
 *   Rekordbox 6.8.5 is recommended at the moment as Rekordbox 7 is reported to export to USB much slower. 
 *   `HFS+` seems to be the fastest USB file format but `FAT32` is more compatible with older Pioneer hardware.
+*   Smart crates are not supported.
 
 ## Future improvements
 
