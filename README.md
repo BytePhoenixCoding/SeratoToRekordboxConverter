@@ -35,9 +35,7 @@ Before running the script, ensure you have the following:
     ```
     Or download the ZIP file and extract it.
 
-2.  **Place `metadata_extraction` Module:** Ensure the `metadata_extraction` folder is in the same directory as `serato_to_rekordbox_converter.py`.
-
-3.  **Install Dependencies:** Open your terminal or command prompt, navigate to the script's directory, and install the required Python package:
+2.  **Install Dependencies:** Open your terminal or command prompt, navigate to the script's directory, and install the required Python package:
     ```bash
     pip install tqdm
     ```
