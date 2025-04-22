@@ -71,6 +71,7 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 *   Some tracks may not have the correct beatgrid data or key.
 *   Smart crates are not supported.
 *   Some beatgrids in Rekordbox appear to be slightly off beat even though perfectly on beat in Serato.
+*   You may have to manually adjust the Serato folder path in the code if it isn't auto detected.
 
 ## Notes
 
