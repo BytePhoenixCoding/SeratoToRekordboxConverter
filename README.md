@@ -65,7 +65,7 @@ Once `Serato_Converted.xml` is generated:
 
 Rekordbox will import the playlists and tracks. The tracks should appear with their correct metadata (Title, Artist, BPM, Key), Hot Cues, and the accurate Beatgrids based on the first beat position provided in the XML. Rekordbox may still perform some background analysis (like waveform drawing), but it should respect the imported beatgrid and cue data.
 
-## Limitations and Notes
+## Limitations
 
 *   This script primarily transfers playlists, basic metadata, hot cues, and the **first beat position** for the beatgrid. Other Serato-specific data like loops, specific track flags (e.g., played status) etc. may not work.
 *   Some tracks may not have the correct beatgrid data or key.
