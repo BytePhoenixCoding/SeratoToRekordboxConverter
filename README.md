@@ -83,6 +83,7 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 - Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff` - only `.mp3` and `.m4a` are supported at the moment as these are the only file formats I ever use.
 - Perhaps improve reliability for processing certain track beatgrids etc.
 - Make a GUI?
+- I thought about trying to reverse engineer the USB export structure so the program could directly export to a USB itself without needing Rekordbox at all, however the USB structure (analysis, database etc) is extremely complex, would require alot of effort and likely wouldn't be as reliable.
 
 ## Contributing
 
