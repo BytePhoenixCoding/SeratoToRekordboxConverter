@@ -7,12 +7,7 @@ from pathlib import Path
 from mutagen.id3 import ID3, GEOB
 from mutagen.mp3 import MP3
 
-from . import mp3_beatgrid
-
-# Constants used for crate file parsing
-START_MARKER = b'ptrk'
-PATH_LENGTH_OFFSET = 4
-START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
+import mp3_beatgrid
 
 major_key_conversion = {
     "C": "8B",
@@ -55,9 +50,6 @@ def convert_key_to_camelot(key: str) -> str:
         return minor_key_conversion[key]
     else:
         return "Unknown"
-
-def has_equal_bytes_at(idx, bytes_array, subset):
-    return idx < len(bytes_array) - len(subset) and all(bytes_array[idx + i] == subset[i] for i in range(len(subset)))
 
 def extract_mp3_metadata(track_path):
     try:
@@ -148,9 +140,6 @@ def extract_metadata(input_file: str) -> dict:
 
     key = str(MP3(input_file).tags.get('TKEY'))
     key = convert_key_to_camelot(key)
-
-    # if key == "Unknown":
-    #     print(f"Unknown key for {input_file}: {MP3(input_file).tags.get('TKEY')}")
 
     return {
         "metadata": {

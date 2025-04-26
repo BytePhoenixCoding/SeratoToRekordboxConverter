@@ -3,13 +3,12 @@ import re
 import struct
 from xml.etree.ElementTree import Element, SubElement, tostring
 from xml.dom import minidom
-import traceback
 from tqdm import tqdm
 import platform
 import urllib.parse
 from collections import defaultdict
-from metadata_extraction import extract_mp3, extract_m4a
-
+import extract_mp3
+import extract_m4a
 
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
@@ -139,16 +138,13 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                 SubElement(playlist_elem, 'TRACK', Key=str(track_id))
 
 
-    output_filename = "Serato_Converted.xml"
+    output_filename = "serato2rekordbox.xml"
     print(f"\nWriting XML file: {output_filename}")
     try:
         with open(output_filename, "w", encoding='utf-8') as f:
             f.write(prettify(root))
     except Exception as e:
          print(f"Error writing XML file: {e}")
-
-def has_equal_bytes_at(idx, bytes_array, subset):
-    return idx < len(bytes_array) - len(subset) and all(bytes_array[idx + i] == subset[i] for i in range(len(subset)))
 
 def find_serato_crates(serato_subcrates_path):
     crate_file_paths = []
@@ -211,7 +207,6 @@ def extract_file_paths_from_crate(crate_file_path, encoding='utf-16-be'):
     except Exception as e:
         error_msg = f"Error reading crate file: {e}"
         unsuccessfulConversions.append({'type': 'crate_read_error', 'path': crate_file_path, 'error': error_msg})
-        # traceback.print_exc()
 
     return paths
 
@@ -315,7 +310,6 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
     except Exception as e:
         unsuccessfulConversions.append({'type': 'processing_error', 'path': full_system_path, 'error': f"{e}"})
-        # traceback.print_exc()
 
 processedSeratoFiles = {}
 
@@ -333,20 +327,8 @@ for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
 
     processedSeratoFiles[playlistName] = []
 
-    # Need the original paths from the crate to look up in track_to_crates keys
-    raw_paths_in_crate = extract_file_paths_from_crate(path) # Note: this might re-add crate errors if not careful, maybe reuse the paths collected earlier?
+    raw_paths_in_crate = extract_file_paths_from_crate(path)
 
-    # Let's iterate through the unique, processed paths and see which playlist they belong to
-    # This approach is cleaner and avoids re-parsing crates here
-    
-    # Alternative approach for structuring playlists:
-    # Iterate through processed_unique_tracks (all_tracks_in_tracks)
-    # For each track, look up its crates in track_to_crates
-    # Add the track to the list for each corresponding playlist name
-
-# Let's restructure the playlist building loop entirely
-
-# Clear the processedSeratoFiles and build it based on the track_to_crates map and all_tracks_in_tracks
 processedSeratoFiles = defaultdict(list)
 
 # Iterate through all successfully processed tracks
@@ -366,9 +348,9 @@ if processedSeratoFiles:
 else:
     print("\nNo tracks were successfully processed. XML file not generated.")
 
-print("\n\n\n")
+print("\n\n")
 print(f'{str(len(all_track_paths_from_crates) - len(unsuccessfulConversions))} / {str(len(all_track_paths_from_crates))} tracks successfully converted.')
-print("\n\n\n")
+print("\n\n")
 
 # --- Refactored Error Reporting ---
 if unsuccessfulConversions:

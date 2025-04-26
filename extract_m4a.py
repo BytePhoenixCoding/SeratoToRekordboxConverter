@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import base64
 import io
 import logging
@@ -10,11 +8,7 @@ from pathlib import Path
 from mutagen.mp4 import MP4
 from mutagen.id3 import ID3
 
-from . import m4a_beatgrid
-
-# Set up logging
-logger = logging.getLogger(__name__)
-logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s", level=logging.INFO)
+import m4a_beatgrid
 
 # --- Key Conversion Dictionaries and Function ---
 
@@ -86,14 +80,14 @@ def read_null_terminated(fp: io.BytesIO) -> bytes:
 
 def parse_cue_entry(entry_data: bytes) -> dict:
     if len(entry_data) < 13 or entry_data[0] != 0 or entry_data[6] != 0:
-        #logger.warning("CUE entry does not match expected format.")
+        #logging.warning("CUE entry does not match expected format.")
         return None
     index = entry_data[1]
     position_ms = struct.unpack(">I", entry_data[2:6])[0]
     r, g, b = entry_data[7:10]
     color = "#{:02X}{:02X}{:02X}".format(r, g, b)
     if struct.unpack(">H", entry_data[10:12])[0] != 0:
-        logger.warning("Unexpected bytes in cue entry at positions 10-11.")
+        logging.warning("Unexpected bytes in cue entry at positions 10-11.")
         return None
     label = entry_data[12:].split(b"\x00", 1)[0].decode("utf-8", errors="replace")
     return {"index": index, "position_ms": position_ms, "color": color, "name": label}
@@ -102,7 +96,7 @@ def parse_markers_with_header(data: bytes) -> list:
     fp = io.BytesIO(data)
     version = fp.read(2)
     if struct.unpack("BB", version) != (1, 1):
-        logger.error("Unexpected version header: %s", version.hex())
+        logging.error("Unexpected version header: %s", version.hex())
         return []
     _ = read_null_terminated(fp)  # discard header
     cues = []
@@ -149,7 +143,7 @@ def strip_mime_and_descriptor(data: bytes) -> bytes:
     _ = read_null_terminated(fp)  # MIME
     _ = read_null_terminated(fp)  # Descriptor
     remainder = fp.read()
-    logger.debug("After MIME stripping, remainder length: %d bytes", len(remainder))
+    logging.debug("After MIME stripping, remainder length: %d bytes", len(remainder))
     return remainder
 
 def parse_serato_hot_cues(tag_data) -> list:
@@ -162,7 +156,7 @@ def parse_serato_hot_cues(tag_data) -> list:
     try:
         outer_decoded = base64.b64decode(clean)
     except Exception as e:
-        logger.error("Failed to decode outer GEOB data: %s", e)
+        logging.error("Failed to decode outer GEOB data: %s", e)
         return []
     if outer_decoded.startswith(b"application/octet-stream"):
         outer_decoded = strip_mime_and_descriptor(outer_decoded)
@@ -173,10 +167,10 @@ def parse_serato_hot_cues(tag_data) -> list:
         ascii_str = outer_decoded.decode("ascii", errors="replace").strip()
         ascii_str = re.sub(r"\s+", "", ascii_str)
     except Exception as e:
-        logger.error("Failed to convert payload to ASCII: %s", e)
+        logging.error("Failed to convert payload to ASCII: %s", e)
         return []
     if len(ascii_str) < 2:
-        logger.error("ASCII payload too short.")
+        logging.error("ASCII payload too short.")
         return []
     trimmed = ascii_str[2:]  # Remove first two characters
     pad = (-len(trimmed)) % 4
@@ -191,7 +185,7 @@ def parse_serato_hot_cues(tag_data) -> list:
         except Exception:
             attempt = attempt[:-1]
     if inner is None:
-        logger.error("Second base64 decode failed.")
+        logging.error("Second base64 decode failed.")
         return []
     if inner.startswith(b"\x01\x01"):
         cues = parse_markers_with_header(inner)
@@ -207,7 +201,7 @@ def _extract_metadata(file_path: str) -> dict:
     results = {"metadata": {}, "hot_cues": [], "beatgrid":[]}
     track = Path(file_path)
     if not track.exists():
-        logger.error("File not found: %s", file_path)
+        logging.error("File not found: %s", file_path)
         return results
 
     results["beatgrid"] = m4a_beatgrid.get_beatgrid(file_path)
@@ -246,9 +240,6 @@ def _extract_metadata(file_path: str) -> dict:
                 results["hot_cues"] = cues
                 break  # Use the first tag with valid cues.
     return results
-
-
-# --- Main Execution ---
 
 def extract_metadata(input_file: str) -> dict:
     res = _extract_metadata(input_file)

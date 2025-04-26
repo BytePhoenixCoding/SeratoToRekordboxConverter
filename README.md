@@ -51,13 +51,13 @@ Before running the script, ensure you have the following:
 3.  **Follow Prompts/Observe Progress:** The script will attempt to auto-detect your Serato folder, read your crates, process your tracks (this is the most time-consuming step), structure playlists, and finally write the XML file. TQDM progress bars will show you the status.
 4.  **Review Output:** After completion, the script will print a summary of successful/unsuccessful conversions and list any items that could not be processed, grouped by the type of error.
 
-The output file `Serato_Converted.xml` will be generated in the same directory as the script.
+The output file `serato2rekordbox.xml` will be generated in the same directory as the script.
 
 **Note:** There are no configuration variables (`base_dir`, `serato_folder_path`) to change at the top of the script anymore, as it attempts to find the Serato folder automatically.
 
 ## Importing into Rekordbox
 
-Once `Serato_Converted.xml` is generated:
+Once `serato2rekordbox.xml` is generated:
 
 1.  Open Rekordbox DJ.
 2.  Go to Settings (Gear icon at top) > Advanced > rekordbox xml and select the generated XML file.
