@@ -29,10 +29,10 @@ Before running the script, ensure you have the following:
 
 ## Installation
 
-1.  **Clone or Download:** Get the script files. You can clone the repository if it's on GitHub:
+1.  **Clone or Download:** Get the script files. You can clone the repository by running:
     ```bash
-    git clone [URL of your GitHub Repo]
-    cd [your-repo-name]
+    git clone https://github.com/BytePhoenixCoding/serato2rekordbox
+    cd serato2rekordbox
     ```
     Or download the ZIP file and extract it.
 
@@ -48,7 +48,7 @@ Before running the script, ensure you have the following:
     ```bash
     python serato2rekordbox.py
     ```
-3.  **Follow Prompts/Observe Progress:** The script will attempt to auto-detect your Serato folder, read your crates, process your tracks (this is the most time-consuming step), structure playlists, and finally write the XML file. TQDM progress bars will show you the status.
+3.  **Let the magic happen:** The script will attempt to auto-detect your Serato folder, read your crates, process your tracks, structure playlists, and finally write the XML file. It shouldn't take longer than a few seconds to complete unless you have a huge library.
 4.  **Review Output:** After completion, the script will print a summary of successful/unsuccessful conversions and list any items that could not be processed, grouped by the type of error.
 
 The output file `serato2rekordbox.xml` will be generated in the same directory as the script.
