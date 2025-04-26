@@ -1,4 +1,4 @@
-# serato2rekordbox
+# serato2rekordbox v1.0
 
 This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer versions) and can be exported easily to a USB or just used in Rekordbox in HID mode. 
 
@@ -12,7 +12,7 @@ I couldn't find any other free software that could convert it so I decided to ma
 
 *   **Playlist Conversion:** Converts your Serato crates into Rekordbox playlists/folders.
 *   **Track Metadata:** Transfers essential metadata including Title, Artist, BPM, and Key.
-*   **Hot Cue Transfer:** Extracts and transfers hot cues, including their position, color, and names (if supported by the audio file tag and your module).
+*   **Hot Cue Transfer:** Extracts and transfers hot cues.
 *   **Accurate Beatgrids:** Extracts the Serato beatgrid data directly from the audio files to extract the *first beat position* from the audio file's beatgrid data and includes it in the XML. This tells Rekordbox exactly where the first beat is, allowing it to correctly align the entire beatgrid without needing to re-analyse it itself.
 *   **Automatic Serato Folder Detection:** Automatically attempts to find your Serato `_Serato_` folder on standard Windows and macOS locations.
 *   **Detailed Error Reporting:** Collects and reports errors (missing files, unsupported formats, processing errors, crate reading issues) in a clear, grouped summary at the end. Failed tracks are excluded from the output XML.
@@ -83,6 +83,7 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 
 - Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff` - only `.mp3` and `.m4a` are supported at the moment as these are the only file formats I ever use.
 - Perhaps improve reliability for processing certain track beatgrids etc.
+- Support name processing for hot cues
 - Make a GUI?
 - I thought about trying to reverse engineer the USB export structure so the program could directly export to a USB itself without needing Rekordbox at all, however the USB structure (analysis, database etc) is extremely complex, would require alot of effort and likely wouldn't be as reliable.
 
