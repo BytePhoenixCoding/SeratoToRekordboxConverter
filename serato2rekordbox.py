@@ -23,18 +23,18 @@ def prettify(elem):
 
 def find_serato_folder():
     home_dir = os.path.expanduser('~')
-    
+
     potential_paths = []
     if platform.system() == "Windows":
         potential_paths = [
             os.path.join(home_dir, 'Music', '_Serato_'),
             os.path.join(home_dir, 'Documents', '_Serato_'),
         ]
-    elif platform.system() == "Darwin": # macOS
+    elif platform.system() == "Darwin": 
         potential_paths = [
             os.path.join(home_dir, 'Music', '_Serato_'),
         ]
-    else: # Linux
+    else: 
          potential_paths = [
             os.path.join(home_dir, 'Music', '_Serato_'),
          ]
@@ -44,7 +44,7 @@ def find_serato_folder():
         if os.path.exists(path) and os.path.isdir(path):
             print(f"Found Serato folder at: {path}")
             return path
-            
+
     print("Error: Serato '_Serato_' folder not found in common locations.")
     print("Please ensure Serato DJ Pro has been run at least once.")
     return None
@@ -52,7 +52,7 @@ def find_serato_folder():
 def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     root = Element('DJ_PLAYLISTS', Version="1.0.0")
     product = SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
-    
+
     collection = SubElement(root, 'COLLECTION', Entries=str(len(all_tracks_in_tracks)))
 
     playlists_elem = SubElement(root, 'PLAYLISTS')
@@ -76,7 +76,6 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             uri_path = absolute_file_path.lstrip('/') 
             full_file_uri = "file://localhost/" + urllib.parse.quote(uri_path)
 
-
         track_elem = SubElement(collection, 'TRACK', 
                                 TrackID=str(current_track_id), 
                                 Name=track_data.get('title', 'Unknown Title').strip(),
@@ -87,7 +86,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                                 Key=track_data.get('key', ''), 
                                 TotalTime=str(round(track_data.get('totalTime_sec', 0), 3))
                                 )
-        
+
         total_time_ms = int(track_data.get('totalTime_sec', 0) * 1000)
         bpm_val = track_data.get('bpm', 0.0)
         if bpm_val > 0:
@@ -129,14 +128,13 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                                    Type="1", 
                                    KeyType="0", 
                                    Entries=str(len(tracks_data_list))) 
-        
+
         for track_data in tracks_data_list:
             absolute_path = track_data['file_location']
             track_id = track_id_map.get(absolute_path)
 
             if track_id is not None:
                 SubElement(playlist_elem, 'TRACK', Key=str(track_id))
-
 
     output_filename = "serato2rekordbox.xml"
     print(f"\nWriting XML file: {output_filename}")
@@ -148,7 +146,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
 
 def find_serato_crates(serato_subcrates_path):
     crate_file_paths = []
-    
+
     if not os.path.exists(serato_subcrates_path):
         print(f"Error: Serato subcrates folder path not found: {serato_subcrates_path}")
         return []
@@ -225,43 +223,38 @@ if not serato_crate_paths:
     print("No .crate files found in the subcrates folder.")
     exit(0)
 
-# Build the map of track paths to crate names
 track_to_crates = defaultdict(list)
 all_track_paths_from_crates = set()
 
 for path in tqdm(serato_crate_paths, desc="Reading crate contents"):
     crate_name = os.path.basename(path)[:-6]
-    # Format crate name like playlist name
+
     try:
         formatted_crate_name = crate_name.split('%%')[0] + " [" + crate_name.split('%%')[1] + "]"
     except IndexError:
-        formatted_crate_name = crate_name # Use original name if no %%
+        formatted_crate_name = crate_name 
     except Exception as e:
-         # Capture playlist naming errors related to the crate itself
-         unsuccessfulConversions.append({'type': 'crate_name_format_error', 'path': path, 'error': f"Error formatting crate name: {e}"})
-         formatted_crate_name = crate_name # Fallback to original name
 
+         unsuccessfulConversions.append({'type': 'crate_name_format_error', 'path': path, 'error': f"Error formatting crate name: {e}"})
+         formatted_crate_name = crate_name 
 
     paths_in_crate = extract_file_paths_from_crate(path)
     for track_path in paths_in_crate:
-        # Normalize path separators and add leading slash for lookup key consistency
+
         normalized_path = track_path.replace('\\', os.sep)
         if platform.system() != "Windows" and not normalized_path.startswith(os.sep):
             lookup_path = os.sep + normalized_path
         else:
             lookup_path = normalized_path
 
-        track_to_crates[lookup_path].append(formatted_crate_name) # Add formatted crate name
-        all_track_paths_from_crates.add(lookup_path) # Collect unique *normalized* paths
-
+        track_to_crates[lookup_path].append(formatted_crate_name) 
+        all_track_paths_from_crates.add(lookup_path) 
 
 print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
 
 all_tracks_in_tracks = {} 
 
 for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing tracks"):
-    
-    # full_system_path is already normalized and potentially has a leading slash from the track_to_crates map building
 
     if not os.path.exists(full_system_path):
         unsuccessfulConversions.append({'type': 'file_not_found', 'path': full_system_path, 'error': 'File not found'})
@@ -313,7 +306,6 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
 processedSeratoFiles = {}
 
-# Re-read crate paths for playlist structuring, as we need the original crate path for naming
 for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
     playlistName = os.path.basename(path)[:-6]
 
@@ -322,7 +314,7 @@ for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
     except IndexError:
         pass
     except Exception as e:
-        # These are playlist names, errors already captured during track_to_crates build or handled by fallback
+
         pass 
 
     processedSeratoFiles[playlistName] = []
@@ -331,16 +323,14 @@ for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
 
 processedSeratoFiles = defaultdict(list)
 
-# Iterate through all successfully processed tracks
 for full_system_path, track_data in all_tracks_in_tracks.items():
-    # Find all crates this track belongs to
+
     crates_for_track = track_to_crates.get(full_system_path, [])
-    
+
     for crate_name in crates_for_track:
-        # Add this track's data to the list for the corresponding playlist name
+
         processedSeratoFiles[crate_name].append(track_data)
 
-# Filter out playlists that ended up empty after removing failed tracks
 processedSeratoFiles = {name: tracks for name, tracks in processedSeratoFiles.items() if tracks}
 
 if processedSeratoFiles:
@@ -352,12 +342,10 @@ print("\n\n")
 print(f'{str(len(all_track_paths_from_crates) - len(unsuccessfulConversions))} / {str(len(all_track_paths_from_crates))} tracks successfully converted.')
 print("\n\n")
 
-# --- Refactored Error Reporting ---
 if unsuccessfulConversions:
-    print(f"\n--- {len(unsuccessfulConversions)} Unsuccessful Conversions ({len(all_track_paths_from_crates) - len(all_tracks_in_tracks)} tracks failed) ---")
+    print(f"--- {len(unsuccessfulConversions)} Unsuccessful Conversions ({len(all_track_paths_from_crates) - len(all_tracks_in_tracks)} tracks failed) ---")
     print("The following items could not be processed and have not been included in the XML file:")
 
-    # Group errors by type
     grouped_errors = {}
     for item in unsuccessfulConversions:
         error_type = item.get('type', 'unknown')
@@ -365,7 +353,6 @@ if unsuccessfulConversions:
             grouped_errors[error_type] = []
         grouped_errors[error_type].append(item)
 
-    # Define user-friendly titles and print order
     error_type_titles = {
         'file_not_found': "Files Not Found:",
         'unsupported_format': "Unsupported File Formats:",
@@ -374,26 +361,23 @@ if unsuccessfulConversions:
         'crate_read_error': "Errors Reading Crate Files:",
         'crate_parse_error': "Errors Parsing Crate File Contents:",
         'crate_decode_error': "Errors Decoding Paths in Crate Files:",
-        'crate_name_format_error': "Errors Formatting Crate/Playlist Names:", # Updated title
+        'crate_name_format_error': "Errors Formatting Crate/Playlist Names:", 
         'unknown': "Other Errors:"
     }
 
-    # Print grouped errors in a defined order
-    # Sort keys to ensure consistent order even if a new type is added
     sorted_error_types = sorted(grouped_errors.keys(), key=lambda x: list(error_type_titles.keys()).index(x) if x in error_type_titles else len(error_type_titles))
 
     for error_type in sorted_error_types:
-        title = error_type_titles.get(error_type, error_type + ":") # Use default if not in titles map
+        title = error_type_titles.get(error_type, error_type + ":") 
         print(f"\n{title}")
         for item in grouped_errors[error_type]:
             item_path = item.get('path', 'N/A')
             item_error = item.get('error', 'No details')
 
-            # Track-related errors: Use filename and crate names
             if error_type in ['file_not_found', 'unsupported_format', 'processing_error', 'beatgrid_parse_error']:
-                # Get the filename (basename)
+
                 filename = os.path.basename(item_path)
-                # Get the crates this file was found in
+
                 crates_for_file = track_to_crates.get(item_path, [])
                 crate_display = ", ".join(crates_for_file) if crates_for_file else "Unknown Crate"
 
@@ -401,16 +385,14 @@ if unsuccessfulConversions:
                     item_error = "File appears to be invalid or corrupt"
 
                 print(f'- "{filename}" ({crate_display}): {item_error}')
-            
-            # Crate-related errors
+
             elif error_type in ['crate_read_error', 'crate_parse_error', 'crate_decode_error', 'crate_name_format_error']:
-                 # Use the basename of the crate file path
+
                  crate_filename = os.path.basename(item_path)
                  print(f'- Crate "{crate_filename}": {item_error}')
 
-            else: # Catch-all
+            else: 
                  print(f'- Item "{item_path}": {item_error}')
-
 
 else:
     print("\nAll tracks successfully processed.")
