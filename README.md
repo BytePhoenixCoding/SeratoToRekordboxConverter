@@ -46,7 +46,7 @@ Before running the script, ensure you have the following:
 1.  **Open Terminal/Command Prompt:** Navigate to the directory where you saved the script files.
 2.  **Run the Script:** Execute the script using Python 3:
     ```bash
-    python serato2rekordbox.py
+    python3 serato2rekordbox.py
     ```
 3.  **Let the magic happen:** The script will attempt to auto-detect your Serato folder, read your crates, process your tracks, structure playlists, and finally write the XML file. It shouldn't take longer than a few seconds to complete unless you have a huge library.
 4.  **Review Output:** After completion, the script will print a summary of successful/unsuccessful conversions and list any items that could not be processed, grouped by the type of error.
