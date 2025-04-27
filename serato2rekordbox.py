@@ -51,98 +51,78 @@ def find_serato_folder():
 
 def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     root = Element('DJ_PLAYLISTS', Version="1.0.0")
-    product = SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
-
+    SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
     collection = SubElement(root, 'COLLECTION', Entries=str(len(all_tracks_in_tracks)))
-
     playlists_elem = SubElement(root, 'PLAYLISTS')
-    root_playlist = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data))) 
+    root_playlist = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
 
     track_id_map = {}
     current_track_id = 1
 
-    for absolute_file_path, track_data in tqdm(all_tracks_in_tracks.items(), desc="Adding tracks to Collection"):
-        track_id_map[absolute_file_path] = current_track_id
-
-        quoted_path = urllib.parse.quote(absolute_file_path)
-
+    for path, data in tqdm(all_tracks_in_tracks.items(), desc="Adding tracks"):
+        track_id_map[path] = current_track_id
         if platform.system() == "Windows":
-            uri_path = absolute_file_path.replace('\\', '/') 
-            if re.match(r'^[A-Za-z]:/', uri_path):
-                uri_path = '/' + uri_path
-            full_file_uri = "file://localhost" + urllib.parse.quote(uri_path)
+            uri = '/' + path.replace('\\', '/').lstrip('/') if re.match(r'^[A-Za-z]:', path) else path.replace('\\', '/')
+            uri = "file://localhost" + urllib.parse.quote(uri)
+        else:
+            uri = "file://localhost/" + urllib.parse.quote(path.lstrip('/'))
 
-        else: 
-            uri_path = absolute_file_path.lstrip('/') 
-            full_file_uri = "file://localhost/" + urllib.parse.quote(uri_path)
+        tr = SubElement(collection, 'TRACK',
+            TrackID=str(current_track_id),
+            Name=data['title'].strip(),
+            Artist=data['artist'].strip(),
+            Kind="MP3 File" if path.lower().endswith('.mp3') else "AAC File",
+            Location=uri,
+            AverageBpm=str(round(data['bpm'], 2)),
+            Tonality=data['key'],
+            TotalTime=str(round(data['totalTime_sec'], 3))
+        )
 
-        track_elem = SubElement(collection, 'TRACK', 
-                                TrackID=str(current_track_id), 
-                                Name=track_data.get('title', 'Unknown Title').strip(),
-                                Artist=track_data.get('artist', 'Unknown Artist').strip(), 
-                                Kind="MP3 File" if absolute_file_path.lower().endswith('.mp3') else "AAC File", 
-                                Location=full_file_uri,
-                                AverageBpm=str(round(track_data.get('bpm', 0.0), 2)), 
-                                Key=track_data.get('key', ''), 
-                                TotalTime=str(round(track_data.get('totalTime_sec', 0), 3))
-                                )
+        bpm = data['bpm']
+        sr = data.get('sample_rate', 0)
+        first = data.get('first_beat_pos_sec')
+        has_grid = data.get('has_beatgrid', False)
+        delay = (2 * 1024 / sr) if path.lower().endswith('.m4a') and sr else 0.0
 
-        total_time_ms = int(track_data.get('totalTime_sec', 0) * 1000)
-        bpm_val = track_data.get('bpm', 0.0)
-        if bpm_val > 0:
-             SubElement(track_elem, 'TEMPO', InMs="0", BPM=str(round(bpm_val, 2)), OutMs=str(total_time_ms))
+        if bpm > 0:
+            # grid start = first beat + AAC decoder delay, in seconds
+            start = round((first or 0.0) + delay/1000.0, 3)
+            SubElement(tr, 'TEMPO',
+                Inizio=str(start),
+                Bpm=str(round(bpm, 2)),
+                Battito="1"#str(round(data['totalTime_sec'], 3))
+            )
 
-        first_beat_pos_sec = track_data.get('first_beat_pos_sec')
-        if first_beat_pos_sec is not None and track_data.get('has_beatgrid', False):
-             SubElement(track_elem, 'POSITION_MARK', Name="", Type="1", Start=str(round(first_beat_pos_sec, 3)), Num="1")
+        if first is not None and has_grid:
+            SubElement(tr, 'POSITION_MARK',
+                Name="", Type="1",
+                Start=str(round(first + delay/1000.0, 3)),
+                Num="1"
+            )
 
-        for hot_cue in track_data.get('hot_cues', []):
-            position_sec = round(hot_cue.get('position_ms', 0) / 1000.0, 3)
-            rekordbox_num = hot_cue.get('index', 0) + 1 
+        for cue in data['hot_cues']:
+            sec = round(cue['position_ms'] / 1000.0, 3)
+            r, g, b = (int(cue['color'][i:i+2], 16) for i in (1, 3, 5))
+            SubElement(tr, 'POSITION_MARK',
+                Name=cue['name'], Type="0",
+                Start=str(sec), Num=str(cue['index']),
+                Red=str(r), Green=str(g), Blue=str(b)
+            )
 
-            color = hot_cue.get('color', '#000000')
-            try:
-                 red = int(color[1:3], 16)
-                 green = int(color[3:5], 16)
-                 blue = int(color[5:7], 16)
-            except (ValueError, IndexError):
-                 red, green, blue = 0, 0, 0 
+        current_track_id += 1
 
-            SubElement(track_elem, 'POSITION_MARK', 
-                       Name=hot_cue.get('name', ''), 
-                       Type="0", 
-                       Start=str(position_sec), 
-                       Num=str(rekordbox_num),
-                       Red=str(red), 
-                       Green=str(green), 
-                       Blue=str(blue))
+    for playlist, tracks in tqdm(processed_data.items(), desc="Writing playlists"):
+        if not tracks: continue
+        node = SubElement(root_playlist, 'NODE',
+            Name=playlist, Type="1", KeyType="0", Entries=str(len(tracks))
+        )
+        for t in tracks:
+            tid = track_id_map.get(t['file_location'])
+            if tid: SubElement(node, 'TRACK', Key=str(tid))
 
-        current_track_id += 1 
+    with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
+        f.write(prettify(root))
 
-    for playlist_name, tracks_data_list in tqdm(processed_data.items(), desc="Structuring Playlists"):
-        if not tracks_data_list:
-            continue
-
-        playlist_elem = SubElement(root_playlist, 'NODE', 
-                                   Name=playlist_name, 
-                                   Type="1", 
-                                   KeyType="0", 
-                                   Entries=str(len(tracks_data_list))) 
-
-        for track_data in tracks_data_list:
-            absolute_path = track_data['file_location']
-            track_id = track_id_map.get(absolute_path)
-
-            if track_id is not None:
-                SubElement(playlist_elem, 'TRACK', Key=str(track_id))
-
-    output_filename = "serato2rekordbox.xml"
-    print(f"\nWriting XML file: {output_filename}")
-    try:
-        with open(output_filename, "w", encoding='utf-8') as f:
-            f.write(prettify(root))
-    except Exception as e:
-         print(f"Error writing XML file: {e}")
 
 def find_serato_crates(serato_subcrates_path):
     crate_file_paths = []
@@ -208,7 +188,7 @@ def extract_file_paths_from_crate(crate_file_path, encoding='utf-16-be'):
 
     return paths
 
-print("Serato to Rekordbox Converter (with advanced metadata & beatgrids)")
+print("serato2rekordbox v1.1")
 
 serato_base_path = find_serato_folder()
 
@@ -266,15 +246,25 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
         if file_extension == '.mp3':
             extracted_data = extract_mp3.extract_metadata(full_system_path)
+
         elif file_extension == '.m4a':
             extracted_data = extract_m4a.extract_metadata(full_system_path)
+
         else:
             unsuccessfulConversions.append({'type': 'unsupported_format', 'path': full_system_path, 'error': f"Unsupported format: {file_extension}"})
             continue
 
         metadata = extracted_data.get('metadata', {})
         hot_cues = extracted_data.get('hot_cues', [])
-        beatgrid = extracted_data.get('beatgrid', [])
+        beatgrid = None
+
+        raw_bg = extracted_data.get('beatgrid')
+        if isinstance(raw_bg, dict):
+            # M4A case → grab the terminal marker
+            beatgrid = [ raw_bg['markers']['terminal']['position'] ]
+        else:
+            # MP3 case is already a list of positions
+            beatgrid = raw_bg or []
 
         first_beat_pos_sec = None
         has_beatgrid = len(beatgrid) > 0 and isinstance(beatgrid, list)
@@ -284,6 +274,7 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
                  first_beat_pos_sec = float(beatgrid[0])
                  if first_beat_pos_sec < 0:
                      first_beat_pos_sec = 0.0
+
              except (IndexError, ValueError) as e:
                  unsuccessfulConversions.append({'type': 'beatgrid_parse_error', 'path': full_system_path, 'error': f"Invalid beatgrid data: {e}"})
                  first_beat_pos_sec = None
@@ -298,7 +289,8 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
             'totalTime_sec': metadata.get('duration_sec', 0), 
             'hot_cues': hot_cues,
             'first_beat_pos_sec': first_beat_pos_sec, 
-            'has_beatgrid': has_beatgrid 
+            'has_beatgrid': has_beatgrid,
+            'sample_rate': metadata.get('sample_rate', 0)
         }
 
     except Exception as e:
@@ -311,24 +303,22 @@ for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
 
     try:
         playlistName = playlistName.split('%%')[0] + " [" + playlistName.split('%%')[1] + "]"
+
     except IndexError:
         pass
-    except Exception as e:
 
+    except Exception as e:
         pass 
 
     processedSeratoFiles[playlistName] = []
-
     raw_paths_in_crate = extract_file_paths_from_crate(path)
 
 processedSeratoFiles = defaultdict(list)
 
 for full_system_path, track_data in all_tracks_in_tracks.items():
-
     crates_for_track = track_to_crates.get(full_system_path, [])
 
     for crate_name in crates_for_track:
-
         processedSeratoFiles[crate_name].append(track_data)
 
 processedSeratoFiles = {name: tracks for name, tracks in processedSeratoFiles.items() if tracks}
