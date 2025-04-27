@@ -1,3 +1,14 @@
+print('''         
+                     _       ___           _                 _ _               
+                    | |     |__ \         | |               | | |              
+  ___  ___ _ __ __ _| |_ ___   ) |_ __ ___| | _____  _ __ __| | |__   _____  __
+ / __|/ _ \ '__/ _` | __/ _ \ / /| '__/ _ \ |/ / _ \| '__/ _` | '_ \ / _ \ \/ /
+ \__ \  __/ | | (_| | || (_) / /_| | |  __/   < (_) | | | (_| | |_) | (_) >  < 
+ |___/\___|_|  \__,_|\__\___/____|_|  \___|_|\_\___/|_|  \__,_|_.__/ \___/_/\_\
+''')
+
+print("\nVersion 1.1\n\n")
+
 import os
 import re
 import struct
@@ -13,6 +24,8 @@ import extract_m4a
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
 START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
+M4A_BEATGRID_OFFSET = 0.08
+M4A_HOTCUE_OFFSET = 0.02
 
 unsuccessfulConversions = [] 
 
@@ -71,7 +84,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             TrackID=str(current_track_id),
             Name=data['title'].strip(),
             Artist=data['artist'].strip(),
-            Kind="MP3 File" if path.lower().endswith('.mp3') else "AAC File",
+            Kind="MP3 File" if path.lower().endswith('.mp3') else "M4A File",
             Location=uri,
             AverageBpm=str(round(data['bpm'], 2)),
             Tonality=data['key'],
@@ -83,6 +96,9 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         first = data.get('first_beat_pos_sec')
         has_grid = data.get('has_beatgrid', False)
         delay = (2 * 1024 / sr) if path.lower().endswith('.m4a') and sr else 0.0
+
+        if path.lower().endswith('.m4a'):
+            first += M4A_BEATGRID_OFFSET
 
         if bpm > 0:
             # grid start = first beat + AAC decoder delay, in seconds
@@ -105,7 +121,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             r, g, b = (int(cue['color'][i:i+2], 16) for i in (1, 3, 5))
             SubElement(tr, 'POSITION_MARK',
                 Name=cue['name'], Type="0",
-                Start=str(sec), Num=str(cue['index']),
+                Start=str(sec + M4A_HOTCUE_OFFSET), Num=str(cue['index']),
                 Red=str(r), Green=str(g), Blue=str(b)
             )
 
@@ -188,8 +204,6 @@ def extract_file_paths_from_crate(crate_file_path, encoding='utf-16-be'):
 
     return paths
 
-print("serato2rekordbox v1.1")
-
 serato_base_path = find_serato_folder()
 
 if not serato_base_path:
@@ -235,7 +249,6 @@ print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates
 all_tracks_in_tracks = {} 
 
 for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing tracks"):
-
     if not os.path.exists(full_system_path):
         unsuccessfulConversions.append({'type': 'file_not_found', 'path': full_system_path, 'error': 'File not found'})
         continue
