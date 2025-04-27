@@ -24,7 +24,7 @@ import extract_m4a
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
 START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
-M4A_BEATGRID_OFFSET = 0.07
+M4A_BEATGRID_OFFSET = 0.075
 M4A_HOTCUE_OFFSET = 0.03
 
 unsuccessfulConversions = [] 
@@ -167,17 +167,39 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
 
         current_track_id += 1
 
-    # write out playlists
-    for playlist, tracks in tqdm(processed_data.items(), desc="Writing playlists"):
-        if not tracks:
-            continue
-        node = SubElement(root_playlist, 'NODE',
-            Name=playlist, Type="1", KeyType="0", Entries=str(len(tracks))
+    plain = {}
+    folders = defaultdict(dict)
+    for fullname, tracks in processed_data.items():
+        m = re.match(r"(.+?) \[(.+)\]$", fullname)
+        if m:
+            folder, sub = m.group(1), m.group(2)
+            folders[folder][sub] = tracks
+        else:
+            plain[fullname] = tracks
+
+    root_playlist.set('Count', str(len(plain) + len(folders)))
+
+    for pname, ptracks in plain.items():
+        pnode = SubElement(root_playlist, 'NODE',
+            Name=pname, Type="1", KeyType="0", Entries=str(len(ptracks))
         )
-        for t in tracks:
+        for t in ptracks:
             tid = track_id_map.get(t['file_location'])
             if tid:
-                SubElement(node, 'TRACK', Key=str(tid))
+                SubElement(pnode, 'TRACK', Key=str(tid))
+
+    for folder, subs in folders.items():
+        fnode = SubElement(root_playlist, 'NODE',
+            Name=folder, Type="0", Count=str(len(subs))
+        )
+        for subname, stracks in subs.items():
+            snode = SubElement(fnode, 'NODE',
+                Name=subname, Type="1", KeyType="0", Entries=str(len(stracks))
+            )
+            for t in stracks:
+                tid = track_id_map.get(t['file_location'])
+                if tid:
+                    SubElement(snode, 'TRACK', Key=str(tid))
 
     with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
         f.write(prettify(root))
