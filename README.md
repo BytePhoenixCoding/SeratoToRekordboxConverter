@@ -1,6 +1,20 @@
-# serato2rekordbox v1.0
+# serato2rekordbox v1.1
 
 This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer versions) and can be exported easily to a USB or just used in Rekordbox in HID mode. 
+
+## Changelog
+
+### v1.1:
+
+- Optimised code
+- Fixed hot cue names not being correctly processed
+- Fixed issue where hot cue slot 1 was never filled
+- Fixed issue where key was not properly displayed
+- Fixed issues with beatgrids on m4a (using fixed offset value)
+
+### v1.0:
+
+- Initial release
 
 ## Why this was developed
 
