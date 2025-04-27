@@ -38,7 +38,7 @@ def parse_cue_entry(entry_data: bytes) -> dict:
         logging.warning("Unexpected bytes in cue entry at positions 10-11.")
         return None
 
-    label = entry_data[12:].split(b"\x00", 1)[0].decode("utf-8", errors="replace")
+    label = entry_data[12:].rstrip(b"\x00").decode("utf-8", errors="replace")
 
     return {"index": index, "position_ms": position_ms, "color": color, "name": label}
 
