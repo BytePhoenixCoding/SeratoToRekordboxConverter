@@ -20,11 +20,12 @@ import urllib.parse
 from collections import defaultdict
 import extract_mp3
 import extract_m4a
+from collections import OrderedDict 
 
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
 START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
-M4A_BEATGRID_OFFSET = 0.075
+M4A_BEATGRID_OFFSET = 0.07
 M4A_HOTCUE_OFFSET = 0.03
 
 unsuccessfulConversions = [] 
@@ -201,6 +202,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                 if tid:
                     SubElement(snode, 'TRACK', Key=str(tid))
 
+
     with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
         f.write(prettify(root))
 
@@ -220,51 +222,70 @@ def find_serato_crates(serato_subcrates_path):
     print(f"Found {len(crate_file_paths)} crate files.")
     return crate_file_paths
 
-def extract_file_paths_from_crate(crate_file_path, encoding='utf-16-be'):
-    paths = []
-    try:
-        with open(crate_file_path, 'rb') as f:
-            bytes_of_file = f.read()
+def extract_file_paths_from_crate(crate_file_path, encoding: str = "utf-16-be"):
+    paths: list[str] = []
+    seen: set[str]   = set()               # used to discard later duplicates
 
-        bytes_length = len(bytes_of_file)
+    try:
+        with open(crate_file_path, "rb") as f:
+            blob = f.read()
+
+        blob_len = len(blob)
         i = 0
 
-        while i < bytes_length - START_MARKER_FULL_LENGTH:
-            marker_index = bytes_of_file.find(START_MARKER, i)
-            if marker_index == -1:
-                break 
+        while i < blob_len - START_MARKER_FULL_LENGTH:
+            marker_idx = blob.find(START_MARKER, i)
+            if marker_idx == -1:           # no more entries
+                break
 
-            i = marker_index + len(START_MARKER)
+            i = marker_idx + len(START_MARKER)
 
-            if i + PATH_LENGTH_OFFSET > bytes_length:
-                 error_msg = f"Malformed crate, unexpected end of file after marker at pos {marker_index}."
-                 unsuccessfulConversions.append({'type': 'crate_parse_error', 'path': crate_file_path, 'error': error_msg})
-                 break
-            path_size_bytes = bytes_of_file[i:i + PATH_LENGTH_OFFSET]
-            path_size = struct.unpack('>I', path_size_bytes)[0]
+            # read 4-byte BE length
+            if i + PATH_LENGTH_OFFSET > blob_len:
+                unsuccessfulConversions.append({
+                    "type": "crate_parse_error",
+                    "path": crate_file_path,
+                    "error": f"Unexpected EOF after marker at byte {marker_idx}"
+                })
+                break
+
+            path_len = struct.unpack(">I", blob[i : i + PATH_LENGTH_OFFSET])[0]
             i += PATH_LENGTH_OFFSET
 
-            if i + path_size > bytes_length:
-                error_msg = f"Malformed crate, path size ({path_size}) exceeds remaining data at pos {i}."
-                unsuccessfulConversions.append({'type': 'crate_parse_error', 'path': crate_file_path, 'error': error_msg})
+            if i + path_len > blob_len:
+                unsuccessfulConversions.append({
+                    "type": "crate_parse_error",
+                    "path": crate_file_path,
+                    "error": f"Path size {path_len} exceeds remaining data at byte {i}"
+                })
                 break
-            audio_path_bytes = bytes_of_file[i:i + path_size]
+
+            raw_path = blob[i : i + path_len]
+            i += path_len                 # advance for next loop
 
             try:
-                absolute_audio_path = audio_path_bytes.decode(encoding).strip()
-                paths.append(absolute_audio_path) 
-
+                abs_path = raw_path.decode(encoding).strip()
             except UnicodeDecodeError:
-                error_msg = f"Could not decode path in crate at position {i}."
-                unsuccessfulConversions.append({'type': 'crate_decode_error', 'path': crate_file_path, 'error': error_msg})
+                unsuccessfulConversions.append({
+                    "type": "crate_decode_error",
+                    "path": crate_file_path,
+                    "error": f"Failed UTF-16 decode at byte {i - path_len}"
+                })
+                continue
 
-            i += path_size 
+            # keep only the first occurrence of any duplicate
+            if abs_path not in seen:
+                paths.append(abs_path)
+                seen.add(abs_path)
 
     except FileNotFoundError:
         print(f"Error: Crate file not found: {crate_file_path}")
-    except Exception as e:
-        error_msg = f"Error reading crate file: {e}"
-        unsuccessfulConversions.append({'type': 'crate_read_error', 'path': crate_file_path, 'error': error_msg})
+    except Exception as exc:
+        unsuccessfulConversions.append({
+            "type": "crate_read_error",
+            "path": crate_file_path,
+            "error": str(exc)
+        })
 
     return paths
 
@@ -349,32 +370,31 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
     except Exception as e:
         unsuccessfulConversions.append({'type': 'processing_error', 'path': full_system_path, 'error': f"{e}"})
 
-processedSeratoFiles = {}
+processedSeratoFiles: dict[str, list] = OrderedDict()
 
-for path in tqdm(serato_crate_paths, desc="Structuring Playlists"):
-    playlistName = os.path.basename(path)[:-6]
+for crate_path in tqdm(serato_crate_paths, desc="Structuring Playlists (crate order)"):
+    raw_name = os.path.basename(crate_path)[:-6]
 
     try:
-        playlistName = playlistName.split('%%')[0] + " [" + playlistName.split('%%')[1] + "]"
-
+        crate_name = f"{raw_name.split('%%')[0]} [{raw_name.split('%%')[1]}]"
     except IndexError:
-        pass
+        crate_name = raw_name
 
-    except Exception as e:
-        pass 
+    processedSeratoFiles[crate_name] = []
 
-    processedSeratoFiles[playlistName] = []
-    raw_paths_in_crate = extract_file_paths_from_crate(path)
+    ordered_paths = extract_file_paths_from_crate(crate_path)
 
-processedSeratoFiles = defaultdict(list)
+    for p in ordered_paths:                             
+        norm = p.replace('\\', os.sep)
+        if platform.system() != "Windows" and not norm.startswith(os.sep):
+            norm = os.sep + norm 
 
-for full_system_path, track_data in all_tracks_in_tracks.items():
-    crates_for_track = track_to_crates.get(full_system_path, [])
+        track_data = all_tracks_in_tracks.get(norm)
 
-    for crate_name in crates_for_track:
-        processedSeratoFiles[crate_name].append(track_data)
+        if track_data:
+            processedSeratoFiles[crate_name].append(track_data)
 
-processedSeratoFiles = {name: tracks for name, tracks in processedSeratoFiles.items() if tracks}
+processedSeratoFiles = { name: tracks for name, tracks in processedSeratoFiles.items() if tracks }
 
 if processedSeratoFiles:
     generate_rekordbox_xml(processedSeratoFiles, all_tracks_in_tracks)
