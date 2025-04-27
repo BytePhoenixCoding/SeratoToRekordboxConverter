@@ -101,9 +101,6 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
 
         raw_grid = data.get('beatgrid')
 
-        if data['title'] == "Happier":
-            print(raw_grid)
-
         seg_positions = []
         seg_bpms = []
 
@@ -113,24 +110,23 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             terminal = markers.get('terminal')
 
             if terminal:
-                # build a segment for each non-terminal marker...
                 for i, nt in enumerate(non_term):
                     pos = float(nt['position'])
                     next_pos = (float(non_term[i+1]['position'])
                                 if i+1 < len(non_term)
                                 else float(terminal['position']))
+
                     beats = nt.get('beats_till_next_marker', 0)
                     duration = next_pos - pos
                     bpm_seg = (beats * 60.0 / duration) if duration > 0 else data['bpm']
                     seg_positions.append(pos)
                     seg_bpms.append(bpm_seg)
-                # ...and a final segment at the terminal marker
                 seg_positions.append(float(terminal['position']))
                 seg_bpms.append(float(terminal.get('bpm', data['bpm'])))
             else:
-                # fallback if terminal missing
                 seg_positions = [ data.get('first_beat_pos_sec') or 0.0 ]
-                seg_bpms      = [ data['bpm'] ]
+                seg_bpms = [ data['bpm'] ]
+
         elif isinstance(raw_grid, list) and raw_grid:
             # simple MP3 case
             seg_positions = [ float(raw_grid[0]) ]
