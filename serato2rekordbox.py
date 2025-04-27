@@ -24,7 +24,7 @@ import extract_m4a
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
 START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
-M4A_BEATGRID_OFFSET = 0.08
+M4A_BEATGRID_OFFSET = 0.24
 M4A_HOTCUE_OFFSET = 0.02
 
 unsuccessfulConversions = [] 
@@ -67,15 +67,19 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
     collection = SubElement(root, 'COLLECTION', Entries=str(len(all_tracks_in_tracks)))
     playlists_elem = SubElement(root, 'PLAYLISTS')
-    root_playlist = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
+    root_playlist  = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
 
-    track_id_map = {}
+    track_id_map    = {}
     current_track_id = 1
 
     for path, data in tqdm(all_tracks_in_tracks.items(), desc="Adding tracks"):
         track_id_map[path] = current_track_id
+
+        # build file:// URI
         if platform.system() == "Windows":
-            uri = '/' + path.replace('\\', '/').lstrip('/') if re.match(r'^[A-Za-z]:', path) else path.replace('\\', '/')
+            uri = path.replace('\\','/')
+            if re.match(r'^[A-Za-z]:', uri):
+                uri = '/' + uri
             uri = "file://localhost" + urllib.parse.quote(uri)
         else:
             uri = "file://localhost/" + urllib.parse.quote(path.lstrip('/'))
@@ -91,54 +95,86 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             TotalTime=str(round(data['totalTime_sec'], 3))
         )
 
-        bpm = data['bpm']
-        sr = data.get('sample_rate', 0)
-        first = data.get('first_beat_pos_sec')
-        has_grid = data.get('has_beatgrid', False)
-        delay = (2 * 1024 / sr) if path.lower().endswith('.m4a') and sr else 0.0
+        is_m4a = path.lower().endswith('.m4a')
+        sr     = data.get('sample_rate', 0)
+        delay  = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
 
-        if path.lower().endswith('.m4a'):
-            first += M4A_BEATGRID_OFFSET
+        raw_grid = data.get('beatgrid')
+        seg_positions = []
+        seg_bpms      = []
 
-        if bpm > 0:
-            # grid start = first beat + AAC decoder delay, in seconds
-            start = round((first or 0.0) + delay/1000.0, 3)
+        if isinstance(raw_grid, dict):
+            markers    = raw_grid.get('markers', {})
+            non_term   = markers.get('non_terminal') or []
+            terminal   = markers.get('terminal')
+            if terminal:
+                # build a segment for each non-terminal marker...
+                for i, nt in enumerate(non_term):
+                    pos       = float(nt['position'])
+                    next_pos  = (float(non_term[i+1]['position'])
+                                 if i+1 < len(non_term)
+                                 else float(terminal['position']))
+                    beats     = nt.get('beats_till_next_marker', 0)
+                    duration  = next_pos - pos
+                    bpm_seg   = (beats * 60.0 / duration) if duration > 0 else data['bpm']
+                    seg_positions.append(pos)
+                    seg_bpms.append(bpm_seg)
+                # ...and a final segment at the terminal marker
+                seg_positions.append(float(terminal['position']))
+                seg_bpms.append(float(terminal.get('bpm', data['bpm'])))
+            else:
+                # fallback if terminal missing
+                seg_positions = [ data.get('first_beat_pos_sec') or 0.0 ]
+                seg_bpms      = [ data['bpm'] ]
+        elif isinstance(raw_grid, list) and raw_grid:
+            # simple MP3 case
+            seg_positions = [ float(raw_grid[0]) ]
+            seg_bpms      = [ data['bpm'] ]
+        else:
+            # no grid at all
+            seg_positions = [ 0.0 ]
+            seg_bpms      = [ data['bpm'] ]
+
+        # emit one <TEMPO> per segment
+        for pos, bpm_val in zip(seg_positions, seg_bpms):
+            if is_m4a:
+                pos += M4A_BEATGRID_OFFSET
+            pos += delay/1000.0
             SubElement(tr, 'TEMPO',
-                Inizio=str(start),
-                Bpm=str(round(bpm, 2)),
-                Battito="1"#str(round(data['totalTime_sec'], 3))
+                Inizio=f"{pos:.3f}",
+                Bpm=f"{bpm_val:.2f}",
+                Battito="1"
             )
 
-        if first is not None and has_grid:
-            SubElement(tr, 'POSITION_MARK',
-                Name="", Type="1",
-                Start=str(round(first + delay/1000.0, 3)),
-                Num="1"
-            )
-
-        for cue in data['hot_cues']:
-            sec = round(cue['position_ms'] / 1000.0, 3)
-            r, g, b = (int(cue['color'][i:i+2], 16) for i in (1, 3, 5))
+        # now hot cues
+        for cue in data.get('hot_cues', []):
+            sec = cue['position_ms'] / 1000.0
+            if is_m4a:
+                sec += M4A_HOTCUE_OFFSET
+            sec = round(sec, 3)
+            r, g, b = (int(cue['color'][i:i+2], 16) for i in (1,3,5))
             SubElement(tr, 'POSITION_MARK',
                 Name=cue['name'], Type="0",
-                Start=str(sec + M4A_HOTCUE_OFFSET), Num=str(cue['index']),
+                Start=str(sec), Num=str(cue['index']),
                 Red=str(r), Green=str(g), Blue=str(b)
             )
 
         current_track_id += 1
 
+    # write out playlists
     for playlist, tracks in tqdm(processed_data.items(), desc="Writing playlists"):
-        if not tracks: continue
+        if not tracks:
+            continue
         node = SubElement(root_playlist, 'NODE',
             Name=playlist, Type="1", KeyType="0", Entries=str(len(tracks))
         )
         for t in tracks:
             tid = track_id_map.get(t['file_location'])
-            if tid: SubElement(node, 'TRACK', Key=str(tid))
+            if tid:
+                SubElement(node, 'TRACK', Key=str(tid))
 
     with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
         f.write(prettify(root))
-
 
 def find_serato_crates(serato_subcrates_path):
     crate_file_paths = []
@@ -204,10 +240,9 @@ def extract_file_paths_from_crate(crate_file_path, encoding='utf-16-be'):
 
     return paths
 
-serato_base_path = find_serato_folder()
+### Main script ###
 
-if not serato_base_path:
-    exit(1)
+serato_base_path = find_serato_folder()
 
 serato_subcrates_path = os.path.join(serato_base_path, 'subcrates')
 
@@ -269,29 +304,7 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
         metadata = extracted_data.get('metadata', {})
         hot_cues = extracted_data.get('hot_cues', [])
-        beatgrid = None
-
-        raw_bg = extracted_data.get('beatgrid')
-        if isinstance(raw_bg, dict):
-            # M4A case → grab the terminal marker
-            beatgrid = [ raw_bg['markers']['terminal']['position'] ]
-        else:
-            # MP3 case is already a list of positions
-            beatgrid = raw_bg or []
-
-        first_beat_pos_sec = None
-        has_beatgrid = len(beatgrid) > 0 and isinstance(beatgrid, list)
-
-        if has_beatgrid:
-             try:
-                 first_beat_pos_sec = float(beatgrid[0])
-                 if first_beat_pos_sec < 0:
-                     first_beat_pos_sec = 0.0
-
-             except (IndexError, ValueError) as e:
-                 unsuccessfulConversions.append({'type': 'beatgrid_parse_error', 'path': full_system_path, 'error': f"Invalid beatgrid data: {e}"})
-                 first_beat_pos_sec = None
-                 has_beatgrid = False 
+        beatgrid = extracted_data.get('beatgrid')
 
         all_tracks_in_tracks[full_system_path] = {
             'file_location': full_system_path, 
@@ -301,8 +314,7 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
             'key': metadata.get('key', 'Unknown'), 
             'totalTime_sec': metadata.get('duration_sec', 0), 
             'hot_cues': hot_cues,
-            'first_beat_pos_sec': first_beat_pos_sec, 
-            'has_beatgrid': has_beatgrid,
+            'beatgrid': beatgrid,
             'sample_rate': metadata.get('sample_rate', 0)
         }
 
@@ -338,6 +350,7 @@ processedSeratoFiles = {name: tracks for name, tracks in processedSeratoFiles.it
 
 if processedSeratoFiles:
     generate_rekordbox_xml(processedSeratoFiles, all_tracks_in_tracks)
+
 else:
     print("\nNo tracks were successfully processed. XML file not generated.")
 
