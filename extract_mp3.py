@@ -99,9 +99,6 @@ def parse_serato_hot_cues(base64_data):
                 color_hex = "#{:02X}{:02X}{:02X}".format(color_data[0], color_data[1], color_data[2])
                 label = hot_cue_data[12:].rstrip(b"\x00").decode("utf-8", errors="replace")
 
-                if label != "": 
-                    print(label)
-
                 hot_cues.append({
                     'index': hotcue_index,
                     'position_ms': position_ms,
