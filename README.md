@@ -1,8 +1,14 @@
-# serato2rekordbox v1.1
+# serato2rekordbox v1.2
 
 This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer versions) and can be exported easily to a USB or just used in Rekordbox in HID mode. 
 
 ## Changelog
+
+### v1.2:
+
+- Supports Rekordbox folders instead of only singular crates
+- Playlist song order now the same as in Serato
+- `.wav` files now supported
 
 ### v1.1:
 
@@ -30,7 +36,7 @@ I couldn't find any other free software that could convert it so I decided to ma
 *   **Accurate Beatgrids:** Extracts the Serato beatgrid data directly from the audio files to extract the *first beat position* from the audio file's beatgrid data and includes it in the XML. This tells Rekordbox exactly where the first beat is, allowing it to correctly align the entire beatgrid without needing to re-analyse it itself.
 *   **Automatic Serato Folder Detection:** Automatically attempts to find your Serato `_Serato_` folder on standard Windows and macOS locations.
 *   **Detailed Error Reporting:** Collects and reports errors (missing files, unsupported formats, processing errors, crate reading issues) in a clear, grouped summary at the end. Failed tracks are excluded from the output XML.
-*   **File Support:** Supports conversion for `.mp3` and `.m4a` audio files found in your Serato library.
+*   **File Support:** Supports conversion for `.mp3`, `.m4a` and `.wav` audio files found in your Serato library.
 *   Normal crates and subcrates are supported.
 
 ## Prerequisites
@@ -92,10 +98,11 @@ Rekordbox will import the playlists and tracks. The tracks should appear with th
 *   The script has been tested on my own Serato library which contains almost 4000 tracks and performs as intended. It was able to process the entire library in around 20 seconds and rekordbox exporting to my USB (HFS+) only took around 15 minutes.
 *   Rekordbox 6.8.5 is recommended at the moment as Rekordbox 7 is reported to export to USB much slower. 
 *   `HFS+` seems to be the fastest USB file format but `FAT32` is more compatible with older Pioneer hardware.
+*   `.wav` files have not been extensively tested but appear to work fine.
 
 ## Future improvements
 
-- Support other file formats eg. `.wav`, `.flac`, `.alac`, `.aiff` - only `.mp3` and `.m4a` are supported at the moment as these are the only file formats I ever use.
+- Support other file formats eg. `.flac`, `.alac`, `.aiff` - only `.mp3`, `.m4a` and `.wav` are supported at the moment.
 - Make a GUI?
 - I thought about trying to reverse engineer the USB export structure so the program could directly export to a USB itself without needing Rekordbox at all, however the USB structure (analysis, database etc) is extremely complex, would require alot of effort and likely wouldn't be as reliable.
 

@@ -7,7 +7,7 @@ print('''
  |___/\___|_|  \__,_|\__\___/____|_|  \___|_|\_\___/|_|  \__,_|_.__/ \___/_/\_\
 ''')
 
-print("\nVersion 1.1\n\n")
+print("\nVersion 1.2\n\n")
 
 import os
 import re
@@ -18,9 +18,11 @@ from tqdm import tqdm
 import platform
 import urllib.parse
 from collections import defaultdict
+from collections import OrderedDict 
+
 import extract_mp3
 import extract_m4a
-from collections import OrderedDict 
+import extract_wav
 
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
@@ -53,7 +55,6 @@ def find_serato_folder():
             os.path.join(home_dir, 'Music', '_Serato_'),
          ]
 
-    print("Attempting to auto-detect Serato '_Serato_' folder...")
     for path in potential_paths:
         if os.path.exists(path) and os.path.isdir(path):
             print(f"Found Serato folder at: {path}")
@@ -68,9 +69,9 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
     collection = SubElement(root, 'COLLECTION', Entries=str(len(all_tracks_in_tracks)))
     playlists_elem = SubElement(root, 'PLAYLISTS')
-    root_playlist  = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
+    root_playlist = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
 
-    track_id_map    = {}
+    track_id_map = {}
     current_track_id = 1
 
     for path, data in tqdm(all_tracks_in_tracks.items(), desc="Adding tracks"):
@@ -85,11 +86,24 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         else:
             uri = "file://localhost/" + urllib.parse.quote(path.lstrip('/'))
 
-        tr = SubElement(collection, 'TRACK',
+        trackType = None
+
+        if path.lower().endswith('.mp3'):
+            trackType = "MP3 File" 
+
+        elif path.lower().endswith('.m4a'):
+            trackType = "M4A File"
+
+        elif path.lower().endswith('.wav'):
+            trackType = "WAV File"
+
+        tr = SubElement(
+            collection, 
+            'TRACK',
             TrackID=str(current_track_id),
             Name=data['title'].strip(),
             Artist=data['artist'].strip(),
-            Kind="MP3 File" if path.lower().endswith('.mp3') else "M4A File",
+            Kind=trackType,
             Location=uri,
             AverageBpm=str(round(data['bpm'], 2)),
             Tonality=data['key'],
@@ -131,11 +145,11 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         elif isinstance(raw_grid, list) and raw_grid:
             # simple MP3 case
             seg_positions = [ float(raw_grid[0]) ]
-            seg_bpms      = [ data['bpm'] ]
+            seg_bpms = [ data['bpm'] ]
         else:
             # no grid at all
             seg_positions = [ 0.0 ]
-            seg_bpms      = [ data['bpm'] ]
+            seg_bpms = [ data['bpm'] ]
 
         # emit one <TEMPO> per segment
         for pos, bpm_val in zip(seg_positions, seg_bpms):
@@ -224,7 +238,7 @@ def find_serato_crates(serato_subcrates_path):
 
 def extract_file_paths_from_crate(crate_file_path, encoding: str = "utf-16-be"):
     paths: list[str] = []
-    seen: set[str]   = set()               # used to discard later duplicates
+    seen: set[str] = set()
 
     try:
         with open(crate_file_path, "rb") as f:
@@ -235,7 +249,7 @@ def extract_file_paths_from_crate(crate_file_path, encoding: str = "utf-16-be"):
 
         while i < blob_len - START_MARKER_FULL_LENGTH:
             marker_idx = blob.find(START_MARKER, i)
-            if marker_idx == -1:           # no more entries
+            if marker_idx == -1:
                 break
 
             i = marker_idx + len(START_MARKER)
@@ -346,6 +360,9 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
         elif file_extension == '.m4a':
             extracted_data = extract_m4a.extract_metadata(full_system_path)
+
+        elif file_extension == '.wav':
+            extracted_data = extract_wav.extract_metadata(full_system_path)
 
         else:
             unsuccessfulConversions.append({'type': 'unsupported_format', 'path': full_system_path, 'error': f"Unsupported format: {file_extension}"})
