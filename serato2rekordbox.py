@@ -24,8 +24,8 @@ import extract_m4a
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
 START_MARKER_FULL_LENGTH = len(START_MARKER) + PATH_LENGTH_OFFSET
-M4A_BEATGRID_OFFSET = 0.24
-M4A_HOTCUE_OFFSET = 0.02
+M4A_BEATGRID_OFFSET = 0.08
+M4A_HOTCUE_OFFSET = 0.03
 
 unsuccessfulConversions = [] 
 
@@ -96,27 +96,32 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         )
 
         is_m4a = path.lower().endswith('.m4a')
-        sr     = data.get('sample_rate', 0)
-        delay  = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
+        sr = data.get('sample_rate', 0)
+        delay = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
 
         raw_grid = data.get('beatgrid')
+
+        if data['title'] == "Happier":
+            print(raw_grid)
+
         seg_positions = []
-        seg_bpms      = []
+        seg_bpms = []
 
         if isinstance(raw_grid, dict):
-            markers    = raw_grid.get('markers', {})
-            non_term   = markers.get('non_terminal') or []
-            terminal   = markers.get('terminal')
+            markers = raw_grid.get('markers', {})
+            non_term = markers.get('non_terminal') or []
+            terminal = markers.get('terminal')
+
             if terminal:
                 # build a segment for each non-terminal marker...
                 for i, nt in enumerate(non_term):
-                    pos       = float(nt['position'])
-                    next_pos  = (float(non_term[i+1]['position'])
-                                 if i+1 < len(non_term)
-                                 else float(terminal['position']))
-                    beats     = nt.get('beats_till_next_marker', 0)
-                    duration  = next_pos - pos
-                    bpm_seg   = (beats * 60.0 / duration) if duration > 0 else data['bpm']
+                    pos = float(nt['position'])
+                    next_pos = (float(non_term[i+1]['position'])
+                                if i+1 < len(non_term)
+                                else float(terminal['position']))
+                    beats = nt.get('beats_till_next_marker', 0)
+                    duration = next_pos - pos
+                    bpm_seg = (beats * 60.0 / duration) if duration > 0 else data['bpm']
                     seg_positions.append(pos)
                     seg_bpms.append(bpm_seg)
                 # ...and a final segment at the terminal marker
@@ -139,7 +144,9 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         for pos, bpm_val in zip(seg_positions, seg_bpms):
             if is_m4a:
                 pos += M4A_BEATGRID_OFFSET
+
             pos += delay/1000.0
+
             SubElement(tr, 'TEMPO',
                 Inizio=f"{pos:.3f}",
                 Bpm=f"{bpm_val:.2f}",
@@ -149,10 +156,13 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
         # now hot cues
         for cue in data.get('hot_cues', []):
             sec = cue['position_ms'] / 1000.0
+
             if is_m4a:
                 sec += M4A_HOTCUE_OFFSET
+
             sec = round(sec, 3)
             r, g, b = (int(cue['color'][i:i+2], 16) for i in (1,3,5))
+
             SubElement(tr, 'POSITION_MARK',
                 Name=cue['name'], Type="0",
                 Start=str(sec), Num=str(cue['index']),
