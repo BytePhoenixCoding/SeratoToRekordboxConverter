@@ -10,7 +10,7 @@ This Python script converts your Serato DJ Pro library (playlists, tracks, metad
 - Fixed hot cue names not being correctly processed
 - Fixed issue where hot cue slot 1 was never filled
 - Fixed issue where key was not properly displayed
-- Fixed issues with beatgrids on m4a (using fixed offset value)
+- Fixed issues with beatgrids in `.m4a` files (using fixed offset value)
 
 ### v1.0:
 
