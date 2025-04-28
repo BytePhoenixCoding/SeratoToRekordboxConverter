@@ -1,6 +1,6 @@
 # serato2rekordbox v1.3
 
-This Python script converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer versions) and can be exported easily to a USB or just used in Rekordbox in HID mode. 
+This command line tool converts your Serato DJ Pro library (playlists, tracks, metadata, beatgrids, and hot cues) into a Rekordbox XML file that can be imported into Rekordbox DJ (tested on 6.8.5 and should work on older/newer versions) and can be exported easily to a USB or just used in Rekordbox in HID mode. 
 
 ## Changelog
 
@@ -34,12 +34,15 @@ As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial
 I couldn't find any other free software that could convert it so I decided to make my own.
 
 <br><br>
-<p align="center">
+<p align="center" style="display: flex; align-items: center; justify-content: center;">
   <img src="https://github.com/user-attachments/assets/137876c4-04da-470e-a921-4c39486815b5" width="350" />
-  <img src="https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/white/svg/long-arrow-right.svg" width="60" style="margin: 0 20px;" />
-  <img width="360" alt="image" src="https://github.com/user-attachments/assets/9780f6fb-5a86-4201-a1a0-6f9ae698734c" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/white/svg/long-arrow-right.svg" width="50" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/9780f6fb-5a86-4201-a1a0-6f9ae698734c" width="350" />
 </p>
 <br>
+
 
 ## Features
 
