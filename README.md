@@ -44,7 +44,7 @@ I couldn't find any other free software that could convert it so I decided to ma
 
 ## Features
 
-*   **Playlist Conversion:** Converts your Serato crates into Rekordbox playlists/folders.
+*   **Playlist Conversion:** Converts your Serato crates into Rekordbox playlists.
 *   **Track Metadata:** Transfers essential metadata including Title, Artist, BPM, and Key.
 *   **Hot Cue Transfer:** Extracts and transfers hot cues.
 *   **Accurate Beatgrids:** Extracts the Serato beatgrid data directly from the audio files to extract the *first beat position* from the audio file's beatgrid data and includes it in the XML. This tells Rekordbox exactly where the first beat is, allowing it to correctly align the entire beatgrid without needing to re-analyse it itself.
