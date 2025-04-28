@@ -96,6 +96,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
 
     for path, data in tqdm(all_tracks_in_tracks.items(), desc="(4/4) Adding tracks"):
         track_id_map[path] = current_track_id
+
         if platform.system() == "Windows":
             uri_path = path.replace("\\", "/")
             if re.match(r"^[A-Za-z]:", uri_path):
@@ -103,7 +104,9 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             uri = "file://localhost" + urllib.parse.quote(uri_path)
         else:
             uri = "file://localhost/" + urllib.parse.quote(path.lstrip("/"))
+
         kind = "MP3 File" if path.lower().endswith(".mp3") else "M4A File" if path.lower().endswith(".m4a") else "WAV File"
+
         tr = SubElement(collection, "TRACK",
                         TrackID=str(current_track_id),
                         Name=data["title"].strip(),
@@ -113,15 +116,18 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                         AverageBpm=f"{data['bpm']:.2f}",
                         Tonality=data["key"],
                         TotalTime=f"{data['totalTime_sec']:.3f}")
+
         is_m4a = path.lower().endswith(".m4a")
         sr = data.get("sample_rate", 0)
         delay = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
         raw_grid = data.get("beatgrid")
         seg_positions, seg_bpms = [], []
+
         if isinstance(raw_grid, dict):
             markers = raw_grid.get("markers", {})
             non_term = markers.get("non_terminal") or []
             terminal = markers.get("terminal")
+
             if terminal:
                 for i, nt in enumerate(non_term):
                     pos = float(nt["position"])
@@ -130,24 +136,33 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                     dur = nxt - pos
                     seg_bpms.append((beats * 60.0 / dur) if dur > 0 else data["bpm"])
                     seg_positions.append(pos)
+
                 seg_positions.append(float(terminal["position"]))
                 seg_bpms.append(float(terminal.get("bpm", data["bpm"])))
+
             else:
                 seg_positions, seg_bpms = [data.get("first_beat_pos_sec") or 0.0], [data["bpm"]]
+
         elif isinstance(raw_grid, list) and raw_grid:
             seg_positions, seg_bpms = [float(raw_grid[0])], [data["bpm"]]
+
         else:
             seg_positions, seg_bpms = [0.0], [data["bpm"]]
+
         for pos, bpm_val in zip(seg_positions, seg_bpms):
             if is_m4a:
                 pos += M4A_BEATGRID_OFFSET
+
             pos += delay / 1000.0
             SubElement(tr, "TEMPO", Inizio=f"{pos:.3f}", Bpm=f"{bpm_val:.2f}", Battito="1")
+
         for cue in data.get("hot_cues", []):
             sec = cue["position_ms"] / 1000.0
+
             if is_m4a:
                 sec += M4A_HOTCUE_OFFSET
             r, g, b = (int(cue["color"][i:i + 2], 16) for i in (1, 3, 5))
+
             SubElement(tr, "POSITION_MARK",
                        Name=cue["name"], Type="0",
                        Start=f"{sec:.3f}", Num=str(cue["index"]),
@@ -157,10 +172,11 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     root_playlist.set("Count", str(len(processed_data)))
 
     for plist_name, tracks in processed_data.items():
-        pnode = SubElement(root_playlist, "NODE",
-                           Name=plist_name, Type="1", KeyType="0", Entries=str(len(tracks)))
+        pnode = SubElement(root_playlist, "NODE", Name=plist_name, Type="1", KeyType="0", Entries=str(len(tracks)))
+
         for t in tracks:
             tid = track_id_map.get(t["file_location"])
+            
             if tid:
                 SubElement(pnode, "TRACK", Key=str(tid))
 
