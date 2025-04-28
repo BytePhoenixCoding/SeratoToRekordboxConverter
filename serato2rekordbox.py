@@ -1,4 +1,4 @@
-print('''         
+print(r'''         
                      _       ___           _                 _ _               
                     | |     |__ \         | |               | | |              
   ___  ___ _ __ __ _| |_ ___   ) |_ __ ___| | _____  _ __ __| | |__   _____  __
@@ -74,7 +74,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     track_id_map = {}
     current_track_id = 1
 
-    for path, data in tqdm(all_tracks_in_tracks.items(), desc="Adding tracks"):
+    for path, data in tqdm(all_tracks_in_tracks.items(), desc="(4/4) Adding tracks"):
         track_id_map[path] = current_track_id
 
         # build file:// URI
@@ -233,7 +233,7 @@ def find_serato_crates(serato_subcrates_path):
             if file.endswith('.crate'):
                 full_path = os.path.join(root, file)
                 crate_file_paths.append(full_path)
-    print(f"Found {len(crate_file_paths)} crate files.")
+    print(f"Found {len(crate_file_paths)} crate files.\n")
     return crate_file_paths
 
 def extract_file_paths_from_crate(crate_file_path, encoding: str = "utf-16-be"):
@@ -318,7 +318,7 @@ if not serato_crate_paths:
 track_to_crates = defaultdict(list)
 all_track_paths_from_crates = set()
 
-for path in tqdm(serato_crate_paths, desc="Reading crate contents"):
+for path in tqdm(serato_crate_paths, desc="(1/4) Reading crate contents"):
     crate_name = os.path.basename(path)[:-6]
 
     try:
@@ -342,11 +342,9 @@ for path in tqdm(serato_crate_paths, desc="Reading crate contents"):
         track_to_crates[lookup_path].append(formatted_crate_name) 
         all_track_paths_from_crates.add(lookup_path) 
 
-print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
-
 all_tracks_in_tracks = {} 
 
-for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing tracks"):
+for full_system_path in tqdm(all_track_paths_from_crates, desc="(2/4) Processing tracks"):
     if not os.path.exists(full_system_path):
         unsuccessfulConversions.append({'type': 'file_not_found', 'path': full_system_path, 'error': 'File not found'})
         continue
@@ -389,7 +387,7 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="Processing track
 
 processedSeratoFiles: dict[str, list] = OrderedDict()
 
-for crate_path in tqdm(serato_crate_paths, desc="Structuring Playlists (crate order)"):
+for crate_path in tqdm(serato_crate_paths, desc="(3/4) Structuring Playlists (crate order)"):
     raw_name = os.path.basename(crate_path)[:-6]
 
     try:
@@ -420,6 +418,7 @@ else:
     print("\nNo tracks were successfully processed. XML file not generated.")
 
 print("\n\n")
+print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
 print(f'{str(len(all_track_paths_from_crates) - len(unsuccessfulConversions))} / {str(len(all_track_paths_from_crates))} tracks successfully converted.')
 print("\n\n")
 
