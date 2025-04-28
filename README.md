@@ -6,7 +6,7 @@ This command line tool converts your Serato DJ Pro library (playlists, tracks, m
 
 ### v1.3:
 
-- Fixed issue where subcrates inside subcrates were not shown at all
+- Fixed issue where subcrates inside subcrates were not processed at all
 - Added auto update checker
 
 ### v1.2:
