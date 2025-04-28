@@ -51,9 +51,9 @@ def find_serato_folder():
             os.path.join(home_dir, 'Music', '_Serato_'),
         ]
     else: 
-         potential_paths = [
+        potential_paths = [
             os.path.join(home_dir, 'Music', '_Serato_'),
-         ]
+        ]
 
     for path in potential_paths:
         if os.path.exists(path) and os.path.isdir(path):
