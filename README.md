@@ -11,7 +11,6 @@ This command line tool converts your Serato DJ Pro library (playlists, tracks, m
 
 ### v1.2:
 
-- Supports Rekordbox folders instead of only singular crates
 - Playlist song order now the same as in Serato
 - `.wav` files now supported
 

@@ -91,12 +91,11 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     playlists_elem = SubElement(root, "PLAYLISTS")
     root_playlist = SubElement(playlists_elem, "NODE", Type="0", Name="ROOT", Count="0")
 
-    track_id_map: dict[str, int] = {}
+    track_id_map = {}
     current_track_id = 1
 
     for path, data in tqdm(all_tracks_in_tracks.items(), desc="(4/4) Adding tracks"):
         track_id_map[path] = current_track_id
-
         if platform.system() == "Windows":
             uri_path = path.replace("\\", "/")
             if re.match(r"^[A-Za-z]:", uri_path):
@@ -104,11 +103,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             uri = "file://localhost" + urllib.parse.quote(uri_path)
         else:
             uri = "file://localhost/" + urllib.parse.quote(path.lstrip("/"))
-
-        kind = "MP3 File" if path.lower().endswith(".mp3") else \
-               "M4A File" if path.lower().endswith(".m4a") else \
-               "WAV File"
-
+        kind = "MP3 File" if path.lower().endswith(".mp3") else "M4A File" if path.lower().endswith(".m4a") else "WAV File"
         tr = SubElement(collection, "TRACK",
                         TrackID=str(current_track_id),
                         Name=data["title"].strip(),
@@ -118,14 +113,11 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                         AverageBpm=f"{data['bpm']:.2f}",
                         Tonality=data["key"],
                         TotalTime=f"{data['totalTime_sec']:.3f}")
-
         is_m4a = path.lower().endswith(".m4a")
         sr = data.get("sample_rate", 0)
         delay = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
-
         raw_grid = data.get("beatgrid")
         seg_positions, seg_bpms = [], []
-
         if isinstance(raw_grid, dict):
             markers = raw_grid.get("markers", {})
             non_term = markers.get("non_terminal") or []
@@ -146,13 +138,11 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
             seg_positions, seg_bpms = [float(raw_grid[0])], [data["bpm"]]
         else:
             seg_positions, seg_bpms = [0.0], [data["bpm"]]
-
         for pos, bpm_val in zip(seg_positions, seg_bpms):
             if is_m4a:
                 pos += M4A_BEATGRID_OFFSET
             pos += delay / 1000.0
             SubElement(tr, "TEMPO", Inizio=f"{pos:.3f}", Bpm=f"{bpm_val:.2f}", Battito="1")
-
         for cue in data.get("hot_cues", []):
             sec = cue["position_ms"] / 1000.0
             if is_m4a:
@@ -162,44 +152,17 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
                        Name=cue["name"], Type="0",
                        Start=f"{sec:.3f}", Num=str(cue["index"]),
                        Red=str(r), Green=str(g), Blue=str(b))
-
         current_track_id += 1
 
-    tree: dict[str, dict] = {"sub": OrderedDict(), "tracks": []}
+    root_playlist.set("Count", str(len(processed_data)))
 
-    def insert_crate(crate_name: str, tracks: list):
-        head = crate_name.split(" [")[0].rstrip()
-        tails = re.findall(r"\[([^\]]+)\]", crate_name)
-        segments = [head] + tails
-
-        node = tree
-        for depth, seg in enumerate(segments):
-            node = node["sub"].setdefault(seg, {"sub": OrderedDict(), "tracks": []})
-            if depth == len(segments) - 1:
-                node["tracks"] = tracks
-
-    for cname, ctracks in processed_data.items():         
-        insert_crate(cname, ctracks)
-
-    def emit(node_dict: dict, parent_xml):
-        for name, nd in node_dict["sub"].items():
-
-            if nd["tracks"]:
-                p = SubElement(parent_xml, "NODE",
-                               Name=name, Type="1", KeyType="0",
-                               Entries=str(len(nd["tracks"])))
-                for t in nd["tracks"]:
-                    tid = track_id_map.get(t["file_location"])
-                    if tid:
-                        SubElement(p, "TRACK", Key=str(tid))
-
-            if nd["sub"]:
-                f = SubElement(parent_xml, "NODE",
-                               Name=name, Type="0", Count=str(len(nd["sub"])))
-                emit(nd, f)
-
-    root_playlist.set("Count", str(len(tree["sub"])))
-    emit(tree, root_playlist)
+    for plist_name, tracks in processed_data.items():
+        pnode = SubElement(root_playlist, "NODE",
+                           Name=plist_name, Type="1", KeyType="0", Entries=str(len(tracks)))
+        for t in tracks:
+            tid = track_id_map.get(t["file_location"])
+            if tid:
+                SubElement(pnode, "TRACK", Key=str(tid))
 
     with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
         f.write(prettify(root))
@@ -310,7 +273,6 @@ for path in tqdm(serato_crate_paths, desc="(1/4) Reading crate contents"):
     except IndexError:
         formatted_crate_name = crate_name 
     except Exception as e:
-
          unsuccessfulConversions.append({'type': 'crate_name_format_error', 'path': path, 'error': f"Error formatting crate name: {e}"})
          formatted_crate_name = crate_name 
 
@@ -369,10 +331,7 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="(2/4) Processing
     except Exception as e:
         unsuccessfulConversions.append({'type': 'processing_error', 'path': full_system_path, 'error': f"{e}"})
 
-# ---------------------------------------------------------------------------
-# (3/4) Build an OrderedDict that preserves  ❬crate-on-disk order❭  *and*
-#       the full folder-/sub-folder hierarchy.
-# ---------------------------------------------------------------------------
+
 processedSeratoFiles: "OrderedDict[str, list]" = OrderedDict()
 
 for crate_path in tqdm(serato_crate_paths,
