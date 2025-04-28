@@ -33,13 +33,15 @@ As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial
 
 I couldn't find any other free software that could convert it so I decided to make my own.
 
-<p align="center" style="background-color: black; padding: 20px;">
-  <img src="https://github.com/user-attachments/assets/137876c4-04da-470e-a921-4c39486815b5" width="350" style="vertical-align: middle;" />
-  <img src="https://www.svgrepo.com/show/143652/turn-right-white-arrow.svg" width="60" style="margin: 0 20px; vertical-align: middle;" />
-  <img src="https://github.com/user-attachments/assets/9780f6fb-5a86-4201-a1a0-6f9ae698734c" width="350" style="vertical-align: middle;" />
+<br><br>
+<p align="center" style="display: flex; align-items: center; justify-content: center;">
+  <img src="https://github.com/user-attachments/assets/137876c4-04da-470e-a921-4c39486815b5" width="350" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/white/svg/long-arrow-right.svg" width="50" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/9780f6fb-5a86-4201-a1a0-6f9ae698734c" width="350" />
 </p>
-
-
+<br>
 
 ## Features
 
