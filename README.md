@@ -33,6 +33,12 @@ As a DJ who mostly uses Serato in HID mode with my laptop, it's still beneficial
 
 I couldn't find any other free software that could convert it so I decided to make my own.
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/137876c4-04da-470e-a921-4c39486815b5" width="406" />
+  &nbsp;&nbsp;&nbsp;➡️&nbsp;&nbsp;&nbsp;
+  <img src="https://github.com/user-attachments/assets/ba1af165-993f-459d-9c79-41735e57b2e7" width="326" />
+</p>
+
 ## Features
 
 *   **Playlist Conversion:** Converts your Serato crates into Rekordbox playlists/folders.
