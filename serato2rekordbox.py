@@ -7,7 +7,7 @@ print(r'''
  |___/\___|_|  \__,_|\__\___/____|_|  \___|_|\_\___/|_|  \__,_|_.__/ \___/_/\_\
 ''')
 
-current_version = "v1.3"
+current_version = "serato2rekordbox v1.3"
 print("\nVersion 1.3\n\n")
 
 import os
@@ -29,21 +29,20 @@ import urllib.request
 import ssl
 
 try:
-    url = "https://raw.githubusercontent.com/BytePhoenixCoding/serato2rekordbox/refs/heads/main/README.md"
+    url = "https://raw.githubusercontent.com/BytePhoenixCoding/serato2rekordbox/main/README.md"
     context = ssl._create_unverified_context()  # <- disable SSL verification
     with urllib.request.urlopen(url, timeout=5, context=context) as response:
         content = response.read().decode('utf-8')
 
     if current_version not in content:
         print("──────────────────────────────────────────────────────────")
-        print("⚠️  A new version of serato2rekordbox is available!")
+        print("⚠️ A new version of serato2rekordbox is available!")
         print("🔗 Please update here: https://github.com/BytePhoenixCoding/serato2rekordbox")
         print("──────────────────────────────────────────────────────────\n")
     else:
-        print("(serato2rekordbox is up to date)")
+        print("✅ serato2rekordbox is up to date.")
 except Exception as e:
     print(f"(Update check skipped: {e})")
-
 
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
@@ -78,7 +77,7 @@ def find_serato_folder():
 
     for path in potential_paths:
         if os.path.exists(path) and os.path.isdir(path):
-            print(f"Found Serato folder at: {path}")
+            print(f"✅ Found Serato folder at: {path}")
             return path
 
     print("Error: Serato '_Serato_' folder not found in common locations.")
@@ -212,13 +211,13 @@ def find_serato_crates(serato_subcrates_path):
         print(f"Error: Serato subcrates folder path not found: {serato_subcrates_path}")
         return []
 
-    print(f"Searching for .crate files in: {serato_subcrates_path}")
+    print(f"✅ Searching for .crate files in: {serato_subcrates_path}")
     for root, dirs, files in os.walk(serato_subcrates_path):
         for file in files:
             if file.endswith('.crate'):
                 full_path = os.path.join(root, file)
                 crate_file_paths.append(full_path)
-    print(f"Found {len(crate_file_paths)} crate files.\n")
+    print(f"✅ Found {len(crate_file_paths)} crate files.\n")
     return crate_file_paths
 
 def extract_file_paths_from_crate(crate_file_path, encoding: str = "utf-16-be"):
@@ -425,10 +424,10 @@ else:
     print("\nNo tracks were successfully processed. XML file not generated.")
 
 
-print("\n\n")
-print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
-print(f'{str(len(all_track_paths_from_crates) - len(unsuccessfulConversions))} / {str(len(all_track_paths_from_crates))} tracks successfully converted.')
-print("\n\n")
+print("\n")
+print(f"✅ Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
+print(f'✅ {str(len(all_track_paths_from_crates) - len(unsuccessfulConversions))} / {str(len(all_track_paths_from_crates))} tracks successfully converted.')
+print("\n")
 
 if unsuccessfulConversions:
     print(f"--- {len(unsuccessfulConversions)} Unsuccessful Conversions ({len(all_track_paths_from_crates) - len(all_tracks_in_tracks)} tracks failed) ---")
