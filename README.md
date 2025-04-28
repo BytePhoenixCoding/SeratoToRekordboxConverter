@@ -4,7 +4,7 @@ This Python script converts your Serato DJ Pro library (playlists, tracks, metad
 
 ## Changelog
 
-### v1.3 changes
+### v1.3:
 
 - Fixed issue where subcrates inside subcrates were not shown at all
 - Added auto update checker
