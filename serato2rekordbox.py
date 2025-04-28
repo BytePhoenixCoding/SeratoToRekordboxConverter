@@ -7,7 +7,8 @@ print(r'''
  |___/\___|_|  \__,_|\__\___/____|_|  \___|_|\_\___/|_|  \__,_|_.__/ \___/_/\_\
 ''')
 
-print("\nVersion 1.2\n\n")
+current_version = "v1.3"
+print("\nVersion 1.3\n\n")
 
 import os
 import re
@@ -23,6 +24,26 @@ from collections import OrderedDict
 import extract_mp3
 import extract_m4a
 import extract_wav
+
+import urllib.request
+import ssl
+
+try:
+    url = "https://raw.githubusercontent.com/BytePhoenixCoding/serato2rekordbox/refs/heads/main/README.md"
+    context = ssl._create_unverified_context()  # <- disable SSL verification
+    with urllib.request.urlopen(url, timeout=5, context=context) as response:
+        content = response.read().decode('utf-8')
+
+    if current_version not in content:
+        print("──────────────────────────────────────────────────────────")
+        print("⚠️  A new version of serato2rekordbox is available!")
+        print("🔗 Please update here: https://github.com/BytePhoenixCoding/serato2rekordbox")
+        print("──────────────────────────────────────────────────────────\n")
+    else:
+        print("(serato2rekordbox is up to date)")
+except Exception as e:
+    print(f"(Update check skipped: {e})")
+
 
 START_MARKER = b'ptrk'
 PATH_LENGTH_OFFSET = 4
@@ -65,157 +86,121 @@ def find_serato_folder():
     return None
 
 def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
-    root = Element('DJ_PLAYLISTS', Version="1.0.0")
-    SubElement(root, 'PRODUCT', Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
-    collection = SubElement(root, 'COLLECTION', Entries=str(len(all_tracks_in_tracks)))
-    playlists_elem = SubElement(root, 'PLAYLISTS')
-    root_playlist = SubElement(playlists_elem, 'NODE', Type="0", Name="ROOT", Count=str(len(processed_data)))
+    root = Element("DJ_PLAYLISTS", Version="1.0.0")
+    SubElement(root, "PRODUCT", Name="rekordbox", Version="6.0.0", Company="AlphaTheta")
+    collection = SubElement(root, "COLLECTION", Entries=str(len(all_tracks_in_tracks)))
+    playlists_elem = SubElement(root, "PLAYLISTS")
+    root_playlist = SubElement(playlists_elem, "NODE", Type="0", Name="ROOT", Count="0")
 
-    track_id_map = {}
+    track_id_map: dict[str, int] = {}
     current_track_id = 1
 
     for path, data in tqdm(all_tracks_in_tracks.items(), desc="(4/4) Adding tracks"):
         track_id_map[path] = current_track_id
 
-        # build file:// URI
         if platform.system() == "Windows":
-            uri = path.replace('\\','/')
-            if re.match(r'^[A-Za-z]:', uri):
-                uri = '/' + uri
-            uri = "file://localhost" + urllib.parse.quote(uri)
+            uri_path = path.replace("\\", "/")
+            if re.match(r"^[A-Za-z]:", uri_path):
+                uri_path = "/" + uri_path
+            uri = "file://localhost" + urllib.parse.quote(uri_path)
         else:
-            uri = "file://localhost/" + urllib.parse.quote(path.lstrip('/'))
+            uri = "file://localhost/" + urllib.parse.quote(path.lstrip("/"))
 
-        trackType = None
+        kind = "MP3 File" if path.lower().endswith(".mp3") else \
+               "M4A File" if path.lower().endswith(".m4a") else \
+               "WAV File"
 
-        if path.lower().endswith('.mp3'):
-            trackType = "MP3 File" 
+        tr = SubElement(collection, "TRACK",
+                        TrackID=str(current_track_id),
+                        Name=data["title"].strip(),
+                        Artist=data["artist"].strip(),
+                        Kind=kind,
+                        Location=uri,
+                        AverageBpm=f"{data['bpm']:.2f}",
+                        Tonality=data["key"],
+                        TotalTime=f"{data['totalTime_sec']:.3f}")
 
-        elif path.lower().endswith('.m4a'):
-            trackType = "M4A File"
-
-        elif path.lower().endswith('.wav'):
-            trackType = "WAV File"
-
-        tr = SubElement(
-            collection, 
-            'TRACK',
-            TrackID=str(current_track_id),
-            Name=data['title'].strip(),
-            Artist=data['artist'].strip(),
-            Kind=trackType,
-            Location=uri,
-            AverageBpm=str(round(data['bpm'], 2)),
-            Tonality=data['key'],
-            TotalTime=str(round(data['totalTime_sec'], 3))
-        )
-
-        is_m4a = path.lower().endswith('.m4a')
-        sr = data.get('sample_rate', 0)
+        is_m4a = path.lower().endswith(".m4a")
+        sr = data.get("sample_rate", 0)
         delay = (2 * 1024 / sr) if (is_m4a and sr) else 0.0
 
-        raw_grid = data.get('beatgrid')
-
-        seg_positions = []
-        seg_bpms = []
+        raw_grid = data.get("beatgrid")
+        seg_positions, seg_bpms = [], []
 
         if isinstance(raw_grid, dict):
-            markers = raw_grid.get('markers', {})
-            non_term = markers.get('non_terminal') or []
-            terminal = markers.get('terminal')
-
+            markers = raw_grid.get("markers", {})
+            non_term = markers.get("non_terminal") or []
+            terminal = markers.get("terminal")
             if terminal:
                 for i, nt in enumerate(non_term):
-                    pos = float(nt['position'])
-                    next_pos = (float(non_term[i+1]['position'])
-                                if i+1 < len(non_term)
-                                else float(terminal['position']))
-
-                    beats = nt.get('beats_till_next_marker', 0)
-                    duration = next_pos - pos
-                    bpm_seg = (beats * 60.0 / duration) if duration > 0 else data['bpm']
+                    pos = float(nt["position"])
+                    nxt = float(non_term[i + 1]["position"]) if i + 1 < len(non_term) else float(terminal["position"])
+                    beats = nt.get("beats_till_next_marker", 0)
+                    dur = nxt - pos
+                    seg_bpms.append((beats * 60.0 / dur) if dur > 0 else data["bpm"])
                     seg_positions.append(pos)
-                    seg_bpms.append(bpm_seg)
-                seg_positions.append(float(terminal['position']))
-                seg_bpms.append(float(terminal.get('bpm', data['bpm'])))
+                seg_positions.append(float(terminal["position"]))
+                seg_bpms.append(float(terminal.get("bpm", data["bpm"])))
             else:
-                seg_positions = [ data.get('first_beat_pos_sec') or 0.0 ]
-                seg_bpms = [ data['bpm'] ]
-
+                seg_positions, seg_bpms = [data.get("first_beat_pos_sec") or 0.0], [data["bpm"]]
         elif isinstance(raw_grid, list) and raw_grid:
-            # simple MP3 case
-            seg_positions = [ float(raw_grid[0]) ]
-            seg_bpms = [ data['bpm'] ]
+            seg_positions, seg_bpms = [float(raw_grid[0])], [data["bpm"]]
         else:
-            # no grid at all
-            seg_positions = [ 0.0 ]
-            seg_bpms = [ data['bpm'] ]
+            seg_positions, seg_bpms = [0.0], [data["bpm"]]
 
-        # emit one <TEMPO> per segment
         for pos, bpm_val in zip(seg_positions, seg_bpms):
             if is_m4a:
                 pos += M4A_BEATGRID_OFFSET
+            pos += delay / 1000.0
+            SubElement(tr, "TEMPO", Inizio=f"{pos:.3f}", Bpm=f"{bpm_val:.2f}", Battito="1")
 
-            pos += delay/1000.0
-
-            SubElement(tr, 'TEMPO',
-                Inizio=f"{pos:.3f}",
-                Bpm=f"{bpm_val:.2f}",
-                Battito="1"
-            )
-
-        # now hot cues
-        for cue in data.get('hot_cues', []):
-            sec = cue['position_ms'] / 1000.0
-
+        for cue in data.get("hot_cues", []):
+            sec = cue["position_ms"] / 1000.0
             if is_m4a:
                 sec += M4A_HOTCUE_OFFSET
-
-            sec = round(sec, 3)
-            r, g, b = (int(cue['color'][i:i+2], 16) for i in (1,3,5))
-
-            SubElement(tr, 'POSITION_MARK',
-                Name=cue['name'], Type="0",
-                Start=str(sec), Num=str(cue['index']),
-                Red=str(r), Green=str(g), Blue=str(b)
-            )
+            r, g, b = (int(cue["color"][i:i + 2], 16) for i in (1, 3, 5))
+            SubElement(tr, "POSITION_MARK",
+                       Name=cue["name"], Type="0",
+                       Start=f"{sec:.3f}", Num=str(cue["index"]),
+                       Red=str(r), Green=str(g), Blue=str(b))
 
         current_track_id += 1
 
-    plain = {}
-    folders = defaultdict(dict)
-    for fullname, tracks in processed_data.items():
-        m = re.match(r"(.+?) \[(.+)\]$", fullname)
-        if m:
-            folder, sub = m.group(1), m.group(2)
-            folders[folder][sub] = tracks
-        else:
-            plain[fullname] = tracks
+    tree: dict[str, dict] = {"sub": OrderedDict(), "tracks": []}
 
-    root_playlist.set('Count', str(len(plain) + len(folders)))
+    def insert_crate(crate_name: str, tracks: list):
+        head = crate_name.split(" [")[0].rstrip()
+        tails = re.findall(r"\[([^\]]+)\]", crate_name)
+        segments = [head] + tails
 
-    for pname, ptracks in plain.items():
-        pnode = SubElement(root_playlist, 'NODE',
-            Name=pname, Type="1", KeyType="0", Entries=str(len(ptracks))
-        )
-        for t in ptracks:
-            tid = track_id_map.get(t['file_location'])
-            if tid:
-                SubElement(pnode, 'TRACK', Key=str(tid))
+        node = tree
+        for depth, seg in enumerate(segments):
+            node = node["sub"].setdefault(seg, {"sub": OrderedDict(), "tracks": []})
+            if depth == len(segments) - 1:
+                node["tracks"] = tracks
 
-    for folder, subs in folders.items():
-        fnode = SubElement(root_playlist, 'NODE',
-            Name=folder, Type="0", Count=str(len(subs))
-        )
-        for subname, stracks in subs.items():
-            snode = SubElement(fnode, 'NODE',
-                Name=subname, Type="1", KeyType="0", Entries=str(len(stracks))
-            )
-            for t in stracks:
-                tid = track_id_map.get(t['file_location'])
-                if tid:
-                    SubElement(snode, 'TRACK', Key=str(tid))
+    for cname, ctracks in processed_data.items():         
+        insert_crate(cname, ctracks)
 
+    def emit(node_dict: dict, parent_xml):
+        for name, nd in node_dict["sub"].items():
+
+            if nd["tracks"]:
+                p = SubElement(parent_xml, "NODE",
+                               Name=name, Type="1", KeyType="0",
+                               Entries=str(len(nd["tracks"])))
+                for t in nd["tracks"]:
+                    tid = track_id_map.get(t["file_location"])
+                    if tid:
+                        SubElement(p, "TRACK", Key=str(tid))
+
+            if nd["sub"]:
+                f = SubElement(parent_xml, "NODE",
+                               Name=name, Type="0", Count=str(len(nd["sub"])))
+                emit(nd, f)
+
+    root_playlist.set("Count", str(len(tree["sub"])))
+    emit(tree, root_playlist)
 
     with open("serato2rekordbox.xml", "w", encoding="utf-8") as f:
         f.write(prettify(root))
@@ -385,37 +370,60 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="(2/4) Processing
     except Exception as e:
         unsuccessfulConversions.append({'type': 'processing_error', 'path': full_system_path, 'error': f"{e}"})
 
-processedSeratoFiles: dict[str, list] = OrderedDict()
+# ---------------------------------------------------------------------------
+# (3/4) Build an OrderedDict that preserves  ❬crate-on-disk order❭  *and*
+#       the full folder-/sub-folder hierarchy.
+# ---------------------------------------------------------------------------
+processedSeratoFiles: "OrderedDict[str, list]" = OrderedDict()
 
-for crate_path in tqdm(serato_crate_paths, desc="(3/4) Structuring Playlists (crate order)"):
-    raw_name = os.path.basename(crate_path)[:-6]
+for crate_path in tqdm(serato_crate_paths,
+                        desc="(3/4) Structuring Playlists (crate order)"):
+    raw_name = os.path.basename(crate_path)[:-6]          # strip ".crate"
 
-    try:
-        crate_name = f"{raw_name.split('%%')[0]} [{raw_name.split('%%')[1]}]"
-    except IndexError:
-        crate_name = raw_name
+    # ──────────────────────────────────────────────────────────────────
+    # A crate called, e.g.,
+    #   "FolderA%%FolderB%%FolderC"
+    # becomes
+    #   "FolderA [FolderB] [FolderC]"
+    # where everything *inside* brackets is a deeper level.
+    # ──────────────────────────────────────────────────────────────────
+    segments = raw_name.split("%%")
+    if len(segments) == 1:
+        crate_display_name = segments[0]                  # flat crate
+    else:
+        crate_display_name = segments[0] + "".join(
+            f" [{seg}]" for seg in segments[1:]
+        )
 
-    processedSeratoFiles[crate_name] = []
+    # Always create an entry – we fill it in a moment, in on-disk order.
+    processedSeratoFiles[crate_display_name] = []
 
+    # Re-read paths *in crate order* so the playlist keeps Serato's sequence.
     ordered_paths = extract_file_paths_from_crate(crate_path)
 
-    for p in ordered_paths:                             
-        norm = p.replace('\\', os.sep)
+    for p in ordered_paths:
+        # normalise path exactly the same way as earlier
+        norm = p.replace("\\", os.sep)
         if platform.system() != "Windows" and not norm.startswith(os.sep):
-            norm = os.sep + norm 
+            norm = os.sep + norm
 
         track_data = all_tracks_in_tracks.get(norm)
-
         if track_data:
-            processedSeratoFiles[crate_name].append(track_data)
+            processedSeratoFiles[crate_display_name].append(track_data)
 
-processedSeratoFiles = { name: tracks for name, tracks in processedSeratoFiles.items() if tracks }
+# strip out any empty crates
+processedSeratoFiles = {
+    name: tracks for name, tracks in processedSeratoFiles.items() if tracks
+}
 
+# ---------------------------------------------------------------------------
+# (4/4) Hand everything off to the XML generator
+# ---------------------------------------------------------------------------
 if processedSeratoFiles:
     generate_rekordbox_xml(processedSeratoFiles, all_tracks_in_tracks)
-
 else:
     print("\nNo tracks were successfully processed. XML file not generated.")
+
 
 print("\n\n")
 print(f"Found {len(all_track_paths_from_crates)} unique tracks across all crates.")
