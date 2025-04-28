@@ -94,7 +94,7 @@ def generate_rekordbox_xml(processed_data, all_tracks_in_tracks):
     track_id_map = {}
     current_track_id = 1
 
-    for path, data in tqdm(all_tracks_in_tracks.items(), desc="(4/4) Adding tracks"):
+    for path, data in tqdm(all_tracks_in_tracks.items(), desc="⚙️ (4/4) Adding tracks"):
         track_id_map[path] = current_track_id
 
         if platform.system() == "Windows":
@@ -275,13 +275,13 @@ serato_subcrates_path = os.path.join(serato_base_path, 'subcrates')
 serato_crate_paths = find_serato_crates(serato_subcrates_path)
 
 if not serato_crate_paths:
-    print("No .crate files found in the subcrates folder.")
+    print("⚠️ No .crate files found in the subcrates folder.")
     exit(0)
 
 track_to_crates = defaultdict(list)
 all_track_paths_from_crates = set()
 
-for path in tqdm(serato_crate_paths, desc="(1/4) Reading crate contents"):
+for path in tqdm(serato_crate_paths, desc="⚙️ (1/4) Reading crate contents"):
     crate_name = os.path.basename(path)[:-6]
 
     try:
@@ -306,7 +306,7 @@ for path in tqdm(serato_crate_paths, desc="(1/4) Reading crate contents"):
 
 all_tracks_in_tracks = {} 
 
-for full_system_path in tqdm(all_track_paths_from_crates, desc="(2/4) Processing tracks"):
+for full_system_path in tqdm(all_track_paths_from_crates, desc="⚙️ (2/4) Processing tracks"):
     if not os.path.exists(full_system_path):
         unsuccessfulConversions.append({'type': 'file_not_found', 'path': full_system_path, 'error': 'File not found'})
         continue
@@ -351,16 +351,9 @@ for full_system_path in tqdm(all_track_paths_from_crates, desc="(2/4) Processing
 processedSeratoFiles: "OrderedDict[str, list]" = OrderedDict()
 
 for crate_path in tqdm(serato_crate_paths,
-                        desc="(3/4) Structuring Playlists (crate order)"):
+                        desc="⚙️ (3/4) Structuring Playlists"):
     raw_name = os.path.basename(crate_path)[:-6]          # strip ".crate"
 
-    # ──────────────────────────────────────────────────────────────────
-    # A crate called, e.g.,
-    #   "FolderA%%FolderB%%FolderC"
-    # becomes
-    #   "FolderA [FolderB] [FolderC]"
-    # where everything *inside* brackets is a deeper level.
-    # ──────────────────────────────────────────────────────────────────
     segments = raw_name.split("%%")
     if len(segments) == 1:
         crate_display_name = segments[0]                  # flat crate
@@ -369,7 +362,6 @@ for crate_path in tqdm(serato_crate_paths,
             f" [{seg}]" for seg in segments[1:]
         )
 
-    # Always create an entry – we fill it in a moment, in on-disk order.
     processedSeratoFiles[crate_display_name] = []
 
     # Re-read paths *in crate order* so the playlist keeps Serato's sequence.
@@ -390,11 +382,9 @@ processedSeratoFiles = {
     name: tracks for name, tracks in processedSeratoFiles.items() if tracks
 }
 
-# ---------------------------------------------------------------------------
-# (4/4) Hand everything off to the XML generator
-# ---------------------------------------------------------------------------
 if processedSeratoFiles:
     generate_rekordbox_xml(processedSeratoFiles, all_tracks_in_tracks)
+
 else:
     print("\nNo tracks were successfully processed. XML file not generated.")
 
@@ -405,8 +395,8 @@ print(f'✅ {str(len(all_track_paths_from_crates) - len(unsuccessfulConversions)
 print("\n")
 
 if unsuccessfulConversions:
-    print(f"--- {len(unsuccessfulConversions)} Unsuccessful Conversions ({len(all_track_paths_from_crates) - len(all_tracks_in_tracks)} tracks failed) ---")
-    print("The following items could not be processed and have not been included in the XML file:")
+    print(f"⚠️ {len(unsuccessfulConversions)} Unsuccessful Conversions ({len(all_track_paths_from_crates) - len(all_tracks_in_tracks)} tracks failed).")
+    print("⚠️ The following items could not be processed and have not been included in the XML file:")
 
     grouped_errors = {}
     for item in unsuccessfulConversions:
@@ -457,4 +447,4 @@ if unsuccessfulConversions:
                  print(f'- Item "{item_path}": {item_error}')
 
 else:
-    print("\nAll tracks successfully processed.")
+    print("\n✅ All tracks successfully processed.")
